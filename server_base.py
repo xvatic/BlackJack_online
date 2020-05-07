@@ -1,7 +1,7 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import QObject, pyqtSignal
 import pickle
-
+import pymysql
 
 from server_gui import Ui_Form
 
@@ -14,6 +14,7 @@ class Window(QtWidgets.QWidget):
         self.clients = {}
         self.history_list = []
         self.client_info = {}
+        self.rooms = {}
         self.MODE_CLIENTS = '03'
         self.MODE_CONNECT = '01'
         self.MODE_DISCONNECT = '02'
