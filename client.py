@@ -12,7 +12,7 @@ class Window(QtWidgets.QWidget):
         self.ui = Ui_Form()
         self.ui.setupUi(self)
         self.signal = New_message_event_handle()
-        self.signal.message_processing.connect(self.message_processing)
+        self.signal.process_message.connect(self.process_message)
         self.MODE_CLIENTS = '03'
         self.MODE_CONNECT = '01'
         self.MODE_DISCONNECT = '02'
@@ -28,19 +28,24 @@ class Window(QtWidgets.QWidget):
     def search(self):
         ClIENT_HOST = socket.gethostbyname(socket.gethostname())
         ClIENT_PORT = 12345
-        UDPSocket = UDPTools(ClIENT_HOST, ClIENT_PORT)
-        UDPSocket.socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        UDPSocket.start_UDP_thread_recieve()
-        UDPSocket.start_UDP_thread_send()
-        time.sleep(2)
-        host, port = UDPSocket.flush()
-        needed_host = str(host)
-        needed_port = int(port)
-        UDPSocket.stopped_connection()
         self.TCPSocket.set_host_and_port(needed_host, needed_port)
         self.TCPSocket.set_login(application.ui.textEdit_setName.toPlainText())
         self.TCPSocket.connect()
         self.history()
+
+    def manage_gui(self):
+        self.ui.groupBox_Enter.setVisible(True)
+        self.ui.groupBox_LogIn.setVisible(False)
+
+    def process_message():
+        pass
+
+    def set_tcp_socket(self, socket):
+        self.TCPSocket = socket
+
+
+class New_message_event_handle(QObject):
+    process_message = pyqtSignal()
 
 
 if __name__ == "__main__":
@@ -49,18 +54,16 @@ if __name__ == "__main__":
     import threading
     import time
 
-    from Network import TCPTools, UDPTools
+    from network import TCPTools
 
     app = QtWidgets.QApplication(sys.argv)
     application = Window()
+    application.ui.groupBox_Game.setVisible(False)
+    application.ui.groupBox_Enter.setVisible(False)
     application.show()
-    TCPSocket = TCPTools(application.signal.message_processing)
+    TCPSocket = TCPTools(application.signal.process_message)
     application.set_tcp_socket(TCPSocket)
 
-    application.ui.pushbutton_Connect.clicked.connect(application.search)
-    application.ui.pushButton_sendMessage.clicked.connect(application.convert)
-    application.ui.pushButton_switch.clicked.connect(application.switch_to_private)
-    application.ui.pushButton_toall.clicked.connect(application.return_to_all)
-    application.ui.pushbutton_Disconnect.clicked.connect(application.leave)
+    application.ui.pushButton_connect.clicked.connect(application.manage_gui)
 
     sys.exit(app.exec_())
