@@ -11,16 +11,29 @@ class TCPTools(QtWidgets.QWidget):
         super().__init__()
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.login = ''
+        self.password = ''
         self.server_flag = False
         self.message_signal = signal
+        self.MODE_KEY = 'mode'
+        self.RECIEVER_KEY = 'reciever'
+        self.PASSWORD_KEY = 'password'
+        self.LOGIN_KEY = 'login'
+        self.MESSAGE_KEY = 'message'
 
         self.MODE_CLIENTS = '03'
         self.MODE_CONNECT = '01'
         self.MODE_DISCONNECT = '02'
         self.MODE_COMMON = '00'
         self.MODE_HISTORY = '04'
+        self.MODE_REGISTER = '05'
 
-        self.MARKER_ALL = '10'
+    def serialize(self, message_dictionary):
+        message_byte_form = pickle.dumps(message_dictionary)
+        return message_byte_form
+
+    def deserialize(self, message_byte_form):
+        message_dictionary = pickle.loads(message_byte_form)
+        return message_dictionary
 
     def fill(self, message):
         self.message = message
@@ -28,23 +41,31 @@ class TCPTools(QtWidgets.QWidget):
     def flush(self):
         return self.message
 
-    def sending(self, mode, reciever, message):
-        time = strftime("%H:%M:%S %d-%m-%Y", localtime())
-        message = f' AT {time} : {message}'
-        final_message = {1: mode, 2: reciever, 3: self.login, 4: message}
+    def send_to_server(self, final_message):
         try:
-            self.socket.send(pickle.dumps(final_message))
+            self.socket.send(final_message)
         except OSError:
             pass
 
     def connect(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.connect((self.host, self.port))
-        self.sending(self.MODE_CONNECT, self.MARKER_ALL, 'connected')
+        final_message = {self.MODE_KEY: mode,
+                         self.PASSWORD_KEY: self.password, self.LOGIN_KEY: self.login}
+        self.send_to_server(self.serialize(final_message))
         self.start_TCP_thread_recieve(None, None)
 
-    def set_login(self, value):
-        self.login = value
+    def register(self):
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.connect((self.host, self.port))
+        final_message = {self.MODE_KEY: mode,
+                         self.PASSWORD_KEY: self.password, self.LOGIN_KEY: self.login}
+        self.send_to_server(self.serialize(final_message))
+        self.start_TCP_thread_recieve(None, None)
+
+    def set_login_and_password(self, login, password):
+        self.login = login
+        self.password = password
 
     def set_host_and_port(self, host, port):
         self.host = host
@@ -77,7 +98,6 @@ class TCPTools(QtWidgets.QWidget):
                         data = self.socket.recv(1024)
                     self.fill(data)
                     self.message_signal.emit()
-                    time.sleep(2)
             except:
                 self.stopped = True
 

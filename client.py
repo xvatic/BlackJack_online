@@ -17,7 +17,9 @@ class Window(QtWidgets.QWidget):
         self.MODE_CONNECT = '01'
         self.MODE_DISCONNECT = '02'
         self.MODE_COMMON = '00'
-        self.MODE_HISTORY = '04'
+
+        self.NEEDED_HOST = socket.gethostbyname(socket.gethostname())
+        self.NEEDED_PORT = 12345
 
         self.MARKER_ALL = '10'
         self.message_list = []
@@ -25,13 +27,19 @@ class Window(QtWidgets.QWidget):
         self.reciever_address = self.MARKER_ALL
         self.sound = pyglet.media.load('files/sms_uvedomlenie_na_iphone.wav', streaming=False)
 
-    def search(self):
-        ClIENT_HOST = socket.gethostbyname(socket.gethostname())
-        ClIENT_PORT = 12345
-        self.TCPSocket.set_host_and_port(needed_host, needed_port)
-        self.TCPSocket.set_login(application.ui.textEdit_setName.toPlainText())
+    def configure_socket(self):
+        self.TCPSocket.set_host_and_port(NEEDED_HOST, NEEDED_PORT)
+
+    def login(self):
+        self.configure_socket()
+        self.TCPSocket.set_login_and_password('', application.ui.lineEdit_2_password.toPlainText())
         self.TCPSocket.connect()
-        self.history()
+
+    def register(self):
+        self.configure_socket()
+        self.TCPSocket.set_login_and_password(
+            application.ui.lineEdit_login, application.ui.lineEdit_2_password.toPlainText())
+        self.TCPSocket.register()
 
     def manage_gui(self):
         self.ui.groupBox_Enter.setVisible(True)
@@ -63,7 +71,7 @@ if __name__ == "__main__":
     application.show()
     TCPSocket = TCPTools(application.signal.process_message)
     application.set_tcp_socket(TCPSocket)
-
-    application.ui.pushButton_connect.clicked.connect(application.manage_gui)
+    application.ui.pushButton_register.clicked.connect(application.register)
+    application.ui.pushButton_connect.clicked.connect(application.login)
 
     sys.exit(app.exec_())

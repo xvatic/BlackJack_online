@@ -1,7 +1,7 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import QObject, pyqtSignal
 import pickle
-import pymysql
+import sqlite3
 
 from server_gui import Ui_Form
 
@@ -15,11 +15,16 @@ class Window(QtWidgets.QWidget):
         self.history_list = []
         self.client_info = {}
         self.rooms = {}
+        self.MODE_KEY = 'mode'
+        self.RECIEVER_KEY = 'reciever'
+        self.PASSWORD_KEY = 'password'
+        self.LOGIN_KEY = 'login'
+        self.MESSAGE_KEY = 'message'
         self.MODE_CLIENTS = '03'
+        self.MODE_REGISTER = '05'
         self.MODE_CONNECT = '01'
         self.MODE_DISCONNECT = '02'
         self.MODE_COMMON = '00'
-        self.MODE_HISTORY = '04'
 
         self.MARKER_ALL = '10'
 
@@ -36,10 +41,6 @@ class Window(QtWidgets.QWidget):
         final_message = {1: mode, 2: client_id, 3: reciever, 4: login, 5: message}
         return final_message
 
-    def store(self, mode, client_id, reciever, login, message):
-        if mode != self.MODE_HISTORY:
-            self.history_list.append(f'{mode}~{client_id}~{reciever}~{login}~{message}')
-
     def serialize(self, message_dictionary):
         message_byte_form = pickle.dumps(message_dictionary)
         return message_byte_form
@@ -48,25 +49,15 @@ class Window(QtWidgets.QWidget):
         message_dictionary = pickle.loads(message_byte_form)
         return message_dictionary
 
-    def request_processing(self, mode, login, client_id, connection):
-        if mode == self.MODE_CONNECT:
-            clients = {1: '03', 2: self.client_info}
-            connection.send(self.serialize(clients))
-            self.client_info[client_id] = login
-        if mode == self.MODE_DISCONNECT:
-            self.client_info.pop(self.clients[connection])
-            self.clients.pop(connection)
+    def request_processing(self, data):
+        mode = data[self.MODE_KEY]
 
-        if mode == self.MODE_HISTORY:
-            i = 2
-            history = {1: '04'}
-            print(self.history_list)
-            for m in self.history_list:
-                message = self.string_to_dictionary(m)
-                history[i] = message
-                i += 1
-            history = self.serialize(history)
-            connection.send(history)
+        if mode == self.MODE_CONNECT:
+            pass
+        if mode == self.MODE_DISCONNECT:
+            pass
+        if mode == self.MODE_REGISTER:
+            self.database.register_client(data[self.PASSWORD_KEY], data[self.LOGIN_KEY])
 
     def new_message_serv(self):
         mode = ''
@@ -84,13 +75,13 @@ class Window(QtWidgets.QWidget):
         connection, address = self.TCPSocket_app.get_client_connection_info()
 
         try:
-            mode, reciever, login, message_content = processed_data[
-                1], processed_data[2], processed_data[3], processed_data[4]
+            mode = processed_data[self.MODE_KEY]
         except KeyError:
             pass
 
         client_id, client_ip = str(address[1]), address[0]
-        self.request_processing(mode, login, client_id, connection)
+
+        self.request_processing(processed_data)
 
         message_converted = f'|{client_ip} {client_id}|{login}|{message_content}'
         final_message = {}
@@ -100,12 +91,8 @@ class Window(QtWidgets.QWidget):
         if mode == self.MODE_COMMON:
             final_message = self.common_message(mode, client_id, reciever, login, message_converted)
 
-        if mode == self.MODE_CONNECT or mode == self.MODE_DISCONNECT:
-            final_message = self.common_message(mode, client_id, reciever, login, message_converted)
-
         self.ui.textEdit_server_log.append(f'{message_converted} {address}')
         final_message = self.serialize(final_message)
-        self.sending(final_message, reciever, connection)
 
     def sending(self, message, reciever, connection):
 
@@ -118,6 +105,9 @@ class Window(QtWidgets.QWidget):
 
     def set_tcp_socket(self, socket):
         self.TCPSocket_app = socket
+
+    def set_database_connection(self, database):
+        self.database = database
 
     def thread_option(self):
         while True:
@@ -140,7 +130,8 @@ if __name__ == "__main__":
     import threading
     import time
 
-    from Network import TCPTools, UDPTools
+    from network import TCPTools
+    from database_interaction import Users
     HOST = socket.gethostbyname(socket.gethostname())
     PORT = 12345
 
@@ -148,11 +139,9 @@ if __name__ == "__main__":
     application = Window()
     application.show()
 
-    UDPSocket = UDPTools(HOST, PORT)
-    UDPSocket.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    UDPSocket.socket.bind(('', PORT))
-    UDPSocket.address_request_flag()
-    UDPSocket.start_UDP_thread_recieve()
+    info = Users()
+    info.check_database_existing()
+    application.set_database_connection(info)
 
     TCPSocket = TCPTools(application.signal.new_message_serv)
     TCPSocket.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
