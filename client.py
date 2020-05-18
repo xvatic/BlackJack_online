@@ -18,10 +18,18 @@ class Window(QtWidgets.QWidget):
         self.MODE_DISCONNECT = '02'
         self.MODE_COMMON = '00'
 
+        self.MODE_KEY = 'mode'
+        self.RECIEVER_KEY = 'reciever'
+        self.PASSWORD_KEY = 'password'
+        self.LOGIN_KEY = 'login'
+        self.MESSAGE_KEY = 'message'
+        self.ROOMS_KEY = 'rooms'
+
         self.NEEDED_HOST = socket.gethostbyname(socket.gethostname())
         self.NEEDED_PORT = 12345
 
         self.MARKER_ALL = '10'
+        self.MARKER_ROOM = '11'
         self.message_list = []
         self.clients = {}
         self.reciever_address = self.MARKER_ALL

@@ -19,6 +19,7 @@ class TCPTools(QtWidgets.QWidget):
         self.PASSWORD_KEY = 'password'
         self.LOGIN_KEY = 'login'
         self.MESSAGE_KEY = 'message'
+        self.ROOMS_KEY = 'rooms'
 
         self.MODE_CLIENTS = '03'
         self.MODE_CONNECT = '01'
@@ -26,6 +27,7 @@ class TCPTools(QtWidgets.QWidget):
         self.MODE_COMMON = '00'
         self.MODE_HISTORY = '04'
         self.MODE_REGISTER = '05'
+        self.MARKER_ROOM = '11'
 
     def serialize(self, message_dictionary):
         message_byte_form = pickle.dumps(message_dictionary)

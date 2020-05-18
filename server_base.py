@@ -20,6 +20,7 @@ class Window(QtWidgets.QWidget):
         self.PASSWORD_KEY = 'password'
         self.LOGIN_KEY = 'login'
         self.MESSAGE_KEY = 'message'
+        self.ROOMS_KEY = 'rooms'
         self.MODE_CLIENTS = '03'
         self.MODE_REGISTER = '05'
         self.MODE_CONNECT = '01'

@@ -15,10 +15,19 @@ class Users():
         self.clients_db.commit()
 
     def check_existing_client(login):
-        pass
+        self.cursor.execute(f"SELECT login FROM users WHERE login = '{login}' ")
+        if self.cursor.fetchone() is None:
+            return False
+        else:
+            return True
 
     def verify_client(self):
         pass
 
     def register_client(self, password, login):
-        self.check_existing_client(login)
+        if self.check_existing_client(login) == False:
+            self.cursor.execute(f"INSERT INTO users VALUES (?,?,?)", (login, password, 100))
+            self.clients_db.commit()
+            return True
+        else:
+            return False
