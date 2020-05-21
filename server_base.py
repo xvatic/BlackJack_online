@@ -16,21 +16,32 @@ class Window(QtWidgets.QWidget):
         self.client_info = {}
         self.rooms = {}
         self.MODE_KEY = 'mode'
+        self.RESULT_KEY = 'result'
+
         self.RECIEVER_KEY = 'reciever'
         self.PASSWORD_KEY = 'password'
         self.LOGIN_KEY = 'login'
         self.MESSAGE_KEY = 'message'
         self.ROOMS_KEY = 'rooms'
+        self.CASH_KEY = 'cash'
         self.MODE_CLIENTS = '03'
         self.MODE_REGISTER = '05'
         self.MODE_CONNECT = '01'
         self.MODE_DISCONNECT = '02'
         self.MODE_COMMON = '00'
+        self.MODE_GAME = '20'
 
         self.MARKER_ALL = '10'
+        self.MARKER_ROOM = '11'
+        self.SUCCESS = '12'
+        self.FAIL = '13'
 
         self.signal = New_message_event_handle()
         self.signal.new_message_serv.connect(self.new_message_serv)
+
+    def append_message_to_server_log(message):
+        self.ui.textEdit_server_log.append(f'{message_converted} {address}')
+        final_message = self.serialize(final_message)
 
     def string_to_dictionary(self, message):
         content = message.split('~')
@@ -50,15 +61,47 @@ class Window(QtWidgets.QWidget):
         message_dictionary = pickle.loads(message_byte_form)
         return message_dictionary
 
-    def request_processing(self, data):
-        mode = data[self.MODE_KEY]
+    def process_game_state(self, state):
+        return
 
+    def process_request(self, data, connection, address):
+        try:
+            mode = data[self.MODE_KEY]
+        except KeyError:
+            return False
+        password = data[self.PASSWORD_KEY]
+        login = data[self.LOGIN_KEY]
         if mode == self.MODE_CONNECT:
-            pass
+            client_id, client_ip = str(address[1]), address[0]
+
+            self.client_info[client_id] = login
+            if self.database.verify_client(password, login) == True:
+                cash = self.database.get_cash(password, login)
+
+                message = {self.MODE_KEY: self.MODE_CONNECT,
+                           self.RESULT_KEY: self.SUCCESS, self.CASH_KEY: cash}
+                connection.send(self.serialize(message))
+                return True
+            else:
+                message = {self.MODE_KEY: self.MODE_CONNECT, self.RESULT_KEY: self.FAIL}
+                connection.send(self.serialize(message))
+                return True
+
+        if mode == self.MODE_REGISTER:
+            client_id, client_ip = str(address[1]), address[0]
+            self.client_info[client_id] = login
+            if self.database.register_client(password, login) == True:
+                cash = self.database.get_cash(password, login)
+                message = {self.MODE_KEY: self.MODE_REGISTER,
+                           self.RESULT_KEY: self.SUCCESS, self.CASH_KEY: cash}
+                connection.send(self.serialize(message))
+                return True
+            else:
+                message = {self.MODE_KEY: self.MODE_REGISTER, self.RESULT_KEY: self.FAIL}
+                connection.send(self.serialize(message))
+                return True
         if mode == self.MODE_DISCONNECT:
             pass
-        if mode == self.MODE_REGISTER:
-            self.database.register_client(data[self.PASSWORD_KEY], data[self.LOGIN_KEY])
 
     def new_message_serv(self):
         mode = ''
@@ -80,23 +123,19 @@ class Window(QtWidgets.QWidget):
         except KeyError:
             pass
 
-        client_id, client_ip = str(address[1]), address[0]
+        if mode == self.MODE_GAME:
+            self.process_game_state(processed_data)
 
-        self.request_processing(processed_data)
+        if self.process_request(processed_data, connection, address) == True:
+            return
 
-        message_converted = f'|{client_ip} {client_id}|{login}|{message_content}'
-        final_message = {}
         if reciever == self.MARKER_ALL:
             self.store(mode, client_id, reciever, login, message_converted)
 
         if mode == self.MODE_COMMON:
             final_message = self.common_message(mode, client_id, reciever, login, message_converted)
 
-        self.ui.textEdit_server_log.append(f'{message_converted} {address}')
-        final_message = self.serialize(final_message)
-
-    def sending(self, message, reciever, connection):
-
+    def send_to_client(self, message, reciever, connection):
         for client_value, address_value in self.clients.items():
             if connection != client_value:
                 if address_value == reciever:

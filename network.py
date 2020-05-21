@@ -52,7 +52,7 @@ class TCPTools(QtWidgets.QWidget):
     def connect(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.connect((self.host, self.port))
-        final_message = {self.MODE_KEY: mode,
+        final_message = {self.MODE_KEY: self.MODE_CONNECT,
                          self.PASSWORD_KEY: self.password, self.LOGIN_KEY: self.login}
         self.send_to_server(self.serialize(final_message))
         self.start_TCP_thread_recieve(None, None)
@@ -60,7 +60,7 @@ class TCPTools(QtWidgets.QWidget):
     def register(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.connect((self.host, self.port))
-        final_message = {self.MODE_KEY: mode,
+        final_message = {self.MODE_KEY: self.MODE_REGISTER,
                          self.PASSWORD_KEY: self.password, self.LOGIN_KEY: self.login}
         self.send_to_server(self.serialize(final_message))
         self.start_TCP_thread_recieve(None, None)

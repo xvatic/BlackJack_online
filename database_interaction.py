@@ -14,15 +14,20 @@ class Users():
         )""")
         self.clients_db.commit()
 
-    def check_existing_client(login):
+    def check_existing_client(self, login):
         self.cursor.execute(f"SELECT login FROM users WHERE login = '{login}' ")
         if self.cursor.fetchone() is None:
             return False
         else:
             return True
 
-    def verify_client(self):
-        pass
+    def verify_client(self, password, login):
+        self.cursor.execute(
+            f"SELECT login FROM users WHERE login = '{login}' and password = '{password}' ")
+        if self.cursor.fetchone() is None:
+            return False
+        else:
+            return True
 
     def register_client(self, password, login):
         if self.check_existing_client(login) == False:
@@ -31,3 +36,9 @@ class Users():
             return True
         else:
             return False
+
+    def get_cash(self, password, login):
+        self.cursor.execute(
+            f"SELECT cash FROM users WHERE login = '{login}' and password = '{password}' ")
+        cash = self.cursor.fetchone()[0]
+        return cash

@@ -17,44 +17,85 @@ class Window(QtWidgets.QWidget):
         self.MODE_CONNECT = '01'
         self.MODE_DISCONNECT = '02'
         self.MODE_COMMON = '00'
+        self.SUCCESS = '12'
+        self.FAIL = '13'
 
+        self.RESULT_KEY = 'result'
         self.MODE_KEY = 'mode'
         self.RECIEVER_KEY = 'reciever'
         self.PASSWORD_KEY = 'password'
         self.LOGIN_KEY = 'login'
         self.MESSAGE_KEY = 'message'
         self.ROOMS_KEY = 'rooms'
+        self.CASH_KEY = 'cash'
 
         self.NEEDED_HOST = socket.gethostbyname(socket.gethostname())
         self.NEEDED_PORT = 12345
+        self.cash = 0
 
         self.MARKER_ALL = '10'
         self.MARKER_ROOM = '11'
         self.message_list = []
         self.clients = {}
         self.reciever_address = self.MARKER_ALL
-        self.sound = pyglet.media.load('files/sms_uvedomlenie_na_iphone.wav', streaming=False)
+
+    def serialize(self, message_dictionary):
+        message_byte_form = pickle.dumps(message_dictionary)
+        return message_byte_form
+
+    def deserialize(self, message_byte_form):
+        message_dictionary = pickle.loads(message_byte_form)
+        return message_dictionary
 
     def configure_socket(self):
-        self.TCPSocket.set_host_and_port(NEEDED_HOST, NEEDED_PORT)
+        self.TCPSocket.set_host_and_port(self.NEEDED_HOST, self.NEEDED_PORT)
 
     def login(self):
         self.configure_socket()
-        self.TCPSocket.set_login_and_password('', application.ui.lineEdit_2_password.toPlainText())
+        self.TCPSocket.set_login_and_password(
+            application.ui.lineEdit_login.text(), application.ui.lineEdit_2_password.text())
         self.TCPSocket.connect()
 
     def register(self):
         self.configure_socket()
         self.TCPSocket.set_login_and_password(
-            application.ui.lineEdit_login, application.ui.lineEdit_2_password.toPlainText())
+            application.ui.lineEdit_login.text(), application.ui.lineEdit_2_password.text())
         self.TCPSocket.register()
+
+    def process_request(self, data):
+        try:
+            mode = data[self.MODE_KEY]
+        except KeyError:
+            return False
+        print(data)
+        if mode == self.MODE_CONNECT:
+            if data[self.RESULT_KEY] == self.SUCCESS:
+                self.cash = data[self.CASH_KEY]
+                self.manage_gui()
+                return True
+
+        if mode == self.MODE_REGISTER:
+            if data[self.RESULT_KEY] == self.SUCCESS:
+                self.cash = data[self.CASH_KEY]
+                self.manage_gui()
+                return True
+
+        if mode == self.MODE_DISCONNECT:
+            return True
+
+    def process_message(self):
+        processed_data = {}
+        data = self.TCPSocket.flush()
+        try:
+            processed_data = self.deserialize(data)
+        except EOFError:
+            pass
+        if self.process_request(processed_data) == True:
+            return
 
     def manage_gui(self):
         self.ui.groupBox_Enter.setVisible(True)
         self.ui.groupBox_LogIn.setVisible(False)
-
-    def process_message():
-        pass
 
     def set_tcp_socket(self, socket):
         self.TCPSocket = socket
