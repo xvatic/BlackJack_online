@@ -12,6 +12,10 @@ class Users():
             password TEXT,
             cash BIGINT
         )""")
+        self.cursor.execute("""CREATE TABLE IF NOT EXISTS donation(
+            promocode TEXT,
+            cash BIGINT
+        )""")
         self.clients_db.commit()
 
     def check_existing_client(self, login):
@@ -37,8 +41,21 @@ class Users():
         else:
             return False
 
-    def get_cash(self, password, login):
+    def get_cash(self, login):
         self.cursor.execute(
-            f"SELECT cash FROM users WHERE login = '{login}' and password = '{password}' ")
+            f"SELECT cash FROM users WHERE login = '{login}' ")
         cash = self.cursor.fetchone()[0]
         return cash
+
+    def check_promocode(self, promocode, login):
+        self.cursor.execute(
+            f"SELECT cash FROM donation WHERE promocode = '{promocode}' "
+        )
+
+        cash = self.cursor.fetchone()[0]
+
+        self.cursor.execute(
+            f"UPDATE users SET cash = cash +{cash} WHERE login = '{login}' "
+        )
+        self.clients_db.commit()
+        return True

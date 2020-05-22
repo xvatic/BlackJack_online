@@ -18,6 +18,7 @@ class Window(QtWidgets.QWidget):
         self.MODE_KEY = 'mode'
         self.RESULT_KEY = 'result'
 
+        self.CODE_KEY = 'code'
         self.RECIEVER_KEY = 'reciever'
         self.PASSWORD_KEY = 'password'
         self.LOGIN_KEY = 'login'
@@ -30,11 +31,16 @@ class Window(QtWidgets.QWidget):
         self.MODE_DISCONNECT = '02'
         self.MODE_COMMON = '00'
         self.MODE_GAME = '20'
+        self.MODE_DONATE = '06'
 
         self.MARKER_ALL = '10'
         self.MARKER_ROOM = '11'
         self.SUCCESS = '12'
         self.FAIL = '13'
+        self.LOGGIN = '1'
+        self.MAIN = '2'
+        self.GAME = '3'
+        self.STATE = self.LOGGIN
 
         self.signal = New_message_event_handle()
         self.signal.new_message_serv.connect(self.new_message_serv)
@@ -69,14 +75,15 @@ class Window(QtWidgets.QWidget):
             mode = data[self.MODE_KEY]
         except KeyError:
             return False
-        password = data[self.PASSWORD_KEY]
+
         login = data[self.LOGIN_KEY]
         if mode == self.MODE_CONNECT:
+            password = data[self.PASSWORD_KEY]
             client_id, client_ip = str(address[1]), address[0]
 
             self.client_info[client_id] = login
             if self.database.verify_client(password, login) == True:
-                cash = self.database.get_cash(password, login)
+                cash = self.database.get_cash(login)
 
                 message = {self.MODE_KEY: self.MODE_CONNECT,
                            self.RESULT_KEY: self.SUCCESS, self.CASH_KEY: cash}
@@ -88,10 +95,11 @@ class Window(QtWidgets.QWidget):
                 return True
 
         if mode == self.MODE_REGISTER:
+            password = data[self.PASSWORD_KEY]
             client_id, client_ip = str(address[1]), address[0]
             self.client_info[client_id] = login
             if self.database.register_client(password, login) == True:
-                cash = self.database.get_cash(password, login)
+                cash = self.database.get_cash(login)
                 message = {self.MODE_KEY: self.MODE_REGISTER,
                            self.RESULT_KEY: self.SUCCESS, self.CASH_KEY: cash}
                 connection.send(self.serialize(message))
@@ -102,6 +110,14 @@ class Window(QtWidgets.QWidget):
                 return True
         if mode == self.MODE_DISCONNECT:
             pass
+
+        if mode == self.MODE_DONATE:
+            if self.database.check_promocode(data[self.CODE_KEY], login) == True:
+                cash = self.database.get_cash(login)
+                message = {self.MODE_KEY: self.MODE_DONATE, self.CASH_KEY: cash}
+                connection.send(self.serialize(message))
+                return True
+        return False
 
     def new_message_serv(self):
         mode = ''
@@ -117,7 +133,6 @@ class Window(QtWidgets.QWidget):
         except EOFError:
             pass
         connection, address = self.TCPSocket_app.get_client_connection_info()
-
         try:
             mode = processed_data[self.MODE_KEY]
         except KeyError:
