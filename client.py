@@ -15,7 +15,7 @@ class Window(QtWidgets.QWidget):
         self.signal = New_message_event_handle()
         self.signal.process_message.connect(self.process_message)
 
-        self.NEEDED_HOST = socket.gethostbyname(socket.gethostname())
+        self.NEEDED_HOST = socket.gethostbyname('localhost')
         self.NEEDED_PORT = 12345
         self.cash = 0
         self.login_player = ''

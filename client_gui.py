@@ -8,6 +8,7 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+import settings
 
 
 class Ui_Form(object):
@@ -67,8 +68,8 @@ class Ui_Form(object):
         self.label_player2.setObjectName("label_player2")
         self.label_Player_pic_2 = QtWidgets.QLabel(self.groupBox_Game)
         self.label_Player_pic_2.setGeometry(QtCore.QRect(320, 70, 131, 141))
-        self.label_Player_pic_2.setText("")
-        self.label_Player_pic_2.setPixmap(QtGui.QPixmap("Files/playericon.png"))
+
+        self.label_Player_pic_2.setPixmap(QtGui.QPixmap(f"{settings.PIC_FILE_PATH}"))
         self.label_Player_pic_2.setScaledContents(True)
         self.label_Player_pic_2.setObjectName("label_Player_pic_2")
         self.label_message3 = QtWidgets.QLabel(self.groupBox_Game)
@@ -79,8 +80,8 @@ class Ui_Form(object):
         self.label_player3.setObjectName("label_player3")
         self.label_Player_pic_3 = QtWidgets.QLabel(self.groupBox_Game)
         self.label_Player_pic_3.setGeometry(QtCore.QRect(580, 210, 131, 141))
-        self.label_Player_pic_3.setText("")
-        self.label_Player_pic_3.setPixmap(QtGui.QPixmap("Files/playericon.png"))
+
+        self.label_Player_pic_3.setPixmap(QtGui.QPixmap(f"{settings.PIC_FILE_PATH}"))
         self.label_Player_pic_3.setScaledContents(True)
         self.label_Player_pic_3.setObjectName("label_Player_pic_3")
         self.label_message1 = QtWidgets.QLabel(self.groupBox_Game)
@@ -91,8 +92,8 @@ class Ui_Form(object):
         self.label_player1.setObjectName("label_player1")
         self.label_Player_pic = QtWidgets.QLabel(self.groupBox_Game)
         self.label_Player_pic.setGeometry(QtCore.QRect(40, 220, 131, 141))
-        self.label_Player_pic.setText("")
-        self.label_Player_pic.setPixmap(QtGui.QPixmap("Files/playericon.png"))
+
+        self.label_Player_pic.setPixmap(QtGui.QPixmap(f"{settings.PIC_FILE_PATH}"))
         self.label_Player_pic.setScaledContents(True)
         self.label_Player_pic.setObjectName("label_Player_pic")
         self.pushButton_enough = QtWidgets.QPushButton(self.groupBox_Game)

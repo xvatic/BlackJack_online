@@ -97,6 +97,7 @@ class Window(QtWidgets.QWidget):
                 return True
 
         if mode == settings.MODE_CREATE_GAME:
+            client_id, client_ip = str(address[1]), address[0]
             if data[settings.LOGIN_KEY] not in self.rooms.keys():
                 self.rooms[data[settings.LOGIN_KEY]] = {
                     settings.PASSWORD_KEY: data[settings.PASSWORD_KEY], settings.ADMIN_KEY: client_id, settings.PLAYERS_KEY: []}
@@ -179,7 +180,7 @@ if __name__ == "__main__":
 
     from network import TCPTools
     from database_interaction import Users
-    HOST = socket.gethostbyname(socket.gethostname())
+    HOST = socket.gethostbyname('localhost')
     PORT = 12345
 
     app = QtWidgets.QApplication(sys.argv)

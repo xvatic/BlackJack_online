@@ -33,3 +33,5 @@ GAME = '3'
 
 SUCCESS = '12'
 FAIL = '13'
+
+PIC_FILE_PATH = '/Users/zhenya_rs6/Desktop/BlackJack Online/BlackJack_online/Files/playericon.png'
