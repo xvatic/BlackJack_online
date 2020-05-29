@@ -2,7 +2,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import QObject, pyqtSignal
 import pickle
 import sqlite3
-
+import settings
 from server_gui import Ui_Form
 
 
@@ -15,32 +15,8 @@ class Window(QtWidgets.QWidget):
         self.history_list = []
         self.client_info = {}
         self.rooms = {}
-        self.MODE_KEY = 'mode'
-        self.RESULT_KEY = 'result'
 
-        self.CODE_KEY = 'code'
-        self.RECIEVER_KEY = 'reciever'
-        self.PASSWORD_KEY = 'password'
-        self.LOGIN_KEY = 'login'
-        self.MESSAGE_KEY = 'message'
-        self.ROOMS_KEY = 'rooms'
-        self.CASH_KEY = 'cash'
-        self.MODE_CLIENTS = '03'
-        self.MODE_REGISTER = '05'
-        self.MODE_CONNECT = '01'
-        self.MODE_DISCONNECT = '02'
-        self.MODE_COMMON = '00'
-        self.MODE_GAME = '20'
-        self.MODE_DONATE = '06'
-
-        self.MARKER_ALL = '10'
-        self.MARKER_ROOM = '11'
-        self.SUCCESS = '12'
-        self.FAIL = '13'
-        self.LOGGIN = '1'
-        self.MAIN = '2'
-        self.GAME = '3'
-        self.STATE = self.LOGGIN
+        self.STATE = settings.LOGGIN
 
         self.signal = New_message_event_handle()
         self.signal.new_message_serv.connect(self.new_message_serv)
@@ -72,49 +48,51 @@ class Window(QtWidgets.QWidget):
 
     def process_request(self, data, connection, address):
         try:
-            mode = data[self.MODE_KEY]
+            mode = data[settings.MODE_KEY]
         except KeyError:
             return False
 
-        login = data[self.LOGIN_KEY]
-        if mode == self.MODE_CONNECT:
-            password = data[self.PASSWORD_KEY]
+        login = data[settings.LOGIN_KEY]
+        if mode == settings.MODE_CONNECT:
+            password = data[settings.PASSWORD_KEY]
             client_id, client_ip = str(address[1]), address[0]
 
             self.client_info[client_id] = login
             if self.database.verify_client(password, login) == True:
                 cash = self.database.get_cash(login)
 
-                message = {self.MODE_KEY: self.MODE_CONNECT,
-                           self.RESULT_KEY: self.SUCCESS, self.CASH_KEY: cash}
+                message = {settings.MODE_KEY: settings.MODE_CONNECT,
+                           settings.RESULT_KEY: settings.SUCCESS, settings.CASH_KEY: cash}
                 connection.send(self.serialize(message))
                 return True
             else:
-                message = {self.MODE_KEY: self.MODE_CONNECT, self.RESULT_KEY: self.FAIL}
+                message = {settings.MODE_KEY: settings.MODE_CONNECT,
+                           settings.RESULT_KEY: settings.FAIL}
                 connection.send(self.serialize(message))
                 return True
 
-        if mode == self.MODE_REGISTER:
-            password = data[self.PASSWORD_KEY]
+        if mode == settings.MODE_REGISTER:
+            password = data[settings.PASSWORD_KEY]
             client_id, client_ip = str(address[1]), address[0]
             self.client_info[client_id] = login
             if self.database.register_client(password, login) == True:
                 cash = self.database.get_cash(login)
-                message = {self.MODE_KEY: self.MODE_REGISTER,
-                           self.RESULT_KEY: self.SUCCESS, self.CASH_KEY: cash}
+                message = {settings.MODE_KEY: settings.MODE_REGISTER,
+                           settings.RESULT_KEY: settings.SUCCESS, settings.CASH_KEY: cash}
                 connection.send(self.serialize(message))
                 return True
             else:
-                message = {self.MODE_KEY: self.MODE_REGISTER, self.RESULT_KEY: self.FAIL}
+                message = {settings.MODE_KEY: settings.MODE_REGISTER,
+                           settings.RESULT_KEY: settings.FAIL}
                 connection.send(self.serialize(message))
                 return True
-        if mode == self.MODE_DISCONNECT:
+        if mode == settings.MODE_DISCONNECT:
             pass
 
-        if mode == self.MODE_DONATE:
-            if self.database.check_promocode(data[self.CODE_KEY], login) == True:
+        if mode == settings.MODE_DONATE:
+            if self.database.check_promocode(data[settings.CODE_KEY], login) == True:
                 cash = self.database.get_cash(login)
-                message = {self.MODE_KEY: self.MODE_DONATE, self.CASH_KEY: cash}
+                message = {settings.MODE_KEY: settings.MODE_DONATE, settings.CASH_KEY: cash}
                 connection.send(self.serialize(message))
                 return True
         return False
@@ -134,20 +112,20 @@ class Window(QtWidgets.QWidget):
             pass
         connection, address = self.TCPSocket_app.get_client_connection_info()
         try:
-            mode = processed_data[self.MODE_KEY]
+            mode = processed_data[settings.MODE_KEY]
         except KeyError:
             pass
 
-        if mode == self.MODE_GAME:
+        if mode == settings.MODE_GAME:
             self.process_game_state(processed_data)
 
         if self.process_request(processed_data, connection, address) == True:
             return
 
-        if reciever == self.MARKER_ALL:
+        if reciever == settings.MARKER_ALL:
             self.store(mode, client_id, reciever, login, message_converted)
 
-        if mode == self.MODE_COMMON:
+        if mode == settings.MODE_COMMON:
             final_message = self.common_message(mode, client_id, reciever, login, message_converted)
 
     def send_to_client(self, message, reciever, connection):
@@ -155,7 +133,7 @@ class Window(QtWidgets.QWidget):
             if connection != client_value:
                 if address_value == reciever:
                     client_value.send(message)
-                elif reciever == self.MARKER_ALL:
+                elif reciever == settings.MARKER_ALL:
                     client_value.send(message)
 
     def set_tcp_socket(self, socket):

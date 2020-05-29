@@ -4,6 +4,7 @@ import time
 from PyQt5 import QtCore, QtWidgets
 from time import localtime, strftime
 import pickle
+import settings
 
 
 class TCPTools(QtWidgets.QWidget):
@@ -14,20 +15,6 @@ class TCPTools(QtWidgets.QWidget):
         self.password = ''
         self.server_flag = False
         self.message_signal = signal
-        self.MODE_KEY = 'mode'
-        self.RECIEVER_KEY = 'reciever'
-        self.PASSWORD_KEY = 'password'
-        self.LOGIN_KEY = 'login'
-        self.MESSAGE_KEY = 'message'
-        self.ROOMS_KEY = 'rooms'
-
-        self.MODE_CLIENTS = '03'
-        self.MODE_CONNECT = '01'
-        self.MODE_DISCONNECT = '02'
-        self.MODE_COMMON = '00'
-        self.MODE_HISTORY = '04'
-        self.MODE_REGISTER = '05'
-        self.MARKER_ROOM = '11'
 
     def serialize(self, message_dictionary):
         message_byte_form = pickle.dumps(message_dictionary)
@@ -52,16 +39,16 @@ class TCPTools(QtWidgets.QWidget):
     def connect(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.connect((self.host, self.port))
-        final_message = {self.MODE_KEY: self.MODE_CONNECT,
-                         self.PASSWORD_KEY: self.password, self.LOGIN_KEY: self.login}
+        final_message = {settings.MODE_KEY: settings.MODE_CONNECT,
+                         settings.PASSWORD_KEY: self.password, settings.LOGIN_KEY: self.login}
         self.send_to_server(self.serialize(final_message))
         self.start_TCP_thread_recieve(None, None)
 
     def register(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.connect((self.host, self.port))
-        final_message = {self.MODE_KEY: self.MODE_REGISTER,
-                         self.PASSWORD_KEY: self.password, self.LOGIN_KEY: self.login}
+        final_message = {settings.MODE_KEY: settings.MODE_REGISTER,
+                         settings.PASSWORD_KEY: self.password, settings.LOGIN_KEY: self.login}
         self.send_to_server(self.serialize(final_message))
         self.start_TCP_thread_recieve(None, None)
 
@@ -111,6 +98,6 @@ class TCPTools(QtWidgets.QWidget):
         Thread_recieve.start()
 
     def disconnect(self):
-        self.sending(self.MODE_DISCONNECT, self.MARKER_ALL, "left")
+        self.sending(settings.MODE_DISCONNECT, settings.MARKER_ALL, "left")
         self.stopped = True
         self.socket.close()

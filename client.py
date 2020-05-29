@@ -2,6 +2,7 @@ from PyQt5 import Qt, QtCore, QtGui, QtWidgets, uic
 from PyQt5.QtCore import pyqtSignal, QObject
 import pickle
 import pyglet
+import settings
 from client_gui import Ui_Form
 from time import localtime, strftime
 
@@ -13,49 +14,32 @@ class Window(QtWidgets.QWidget):
         self.ui.setupUi(self)
         self.signal = New_message_event_handle()
         self.signal.process_message.connect(self.process_message)
-        self.MODE_CLIENTS = '03'
-        self.MODE_CONNECT = '01'
-        self.MODE_REGISTER = '05'
-        self.MODE_DISCONNECT = '02'
-        self.MODE_DONATE = '06'
-        self.MODE_COMMON = '00'
-        self.SUCCESS = '12'
-        self.FAIL = '13'
-
-        self.RESULT_KEY = 'result'
-        self.MODE_KEY = 'mode'
-        self.RECIEVER_KEY = 'reciever'
-        self.PASSWORD_KEY = 'password'
-        self.LOGIN_KEY = 'login'
-        self.MESSAGE_KEY = 'message'
-        self.ROOMS_KEY = 'rooms'
-        self.CASH_KEY = 'cash'
-        self.CODE_KEY = 'code'
 
         self.NEEDED_HOST = socket.gethostbyname(socket.gethostname())
         self.NEEDED_PORT = 12345
         self.cash = 0
         self.login_player = ''
 
-        self.MARKER_ALL = '10'
-        self.MARKER_ROOM = '11'
         self.message_list = []
         self.clients = {}
-        self.reciever_address = self.MARKER_ALL
+        self.reciever_address = settings.MARKER_ALL
 
         self.LOGGIN = '1'
         self.MAIN = '2'
         self.GAME = '3'
-        self.STATE = self.LOGGIN
+        self.STATE = settings.LOGGIN
+
+    def create_room(self):
+
+        pass
 
     def refresh_main_ui(self):
         self.ui.label_money.setText(f"{self.cash}")
-        print('WORKS')
 
     def activate(self):
         code = self.ui.lineEdit_code.text()
-        message = {self.MODE_KEY: self.MODE_DONATE,
-                   self.CODE_KEY: code, self.LOGIN_KEY: self.login_player}
+        message = {settings.MODE_KEY: settings.MODE_DONATE,
+                   settings.CODE_KEY: code, settings.LOGIN_KEY: self.login_player}
         self.send_to_server(message)
 
     def serialize(self, message_dictionary):
@@ -85,27 +69,28 @@ class Window(QtWidgets.QWidget):
 
     def process_request(self, data):
         try:
-            mode = data[self.MODE_KEY]
+            mode = data[settings.MODE_KEY]
         except KeyError:
             return False
 
-        if mode == self.MODE_CONNECT:
-            if data[self.RESULT_KEY] == self.SUCCESS:
-                self.cash = data[self.CASH_KEY]
-                self.set_main_form()
+        if mode == settings.MODE_CONNECT:
+            if data[settings.RESULT_KEY] == settings.SUCCESS:
+                self.cash = data[settings.CASH_KEY]
+                self.set_form(True, False, False)
+                self.confugure_entry_form()
                 return True
 
-        if mode == self.MODE_REGISTER:
-            if data[self.RESULT_KEY] == self.SUCCESS:
-                self.cash = data[self.CASH_KEY]
+        if mode == settings.MODE_REGISTER:
+            if data[settings.RESULT_KEY] == settings.SUCCESS:
+                self.cash = data[settings.CASH_KEY]
                 self.manage_gui()
                 return True
 
-        if mode == self.MODE_DISCONNECT:
+        if mode == settings.MODE_DISCONNECT:
             return True
 
-        if mode == self.MODE_DONATE:
-            self.cash = data[self.CASH_KEY]
+        if mode == settings.MODE_DONATE:
+            self.cash = data[settings.CASH_KEY]
             self.refresh_main_ui()
 
     def process_message(self):
@@ -122,11 +107,16 @@ class Window(QtWidgets.QWidget):
         message = self.serialize(message)
         self.TCPSocket.send_to_server(message)
 
-    def set_main_form(self):
-        self.ui.groupBox_Enter.setVisible(True)
-        self.ui.groupBox_LogIn.setVisible(False)
-        self.ui.groupBox_Game.setVisible(False)
+    def set_form(self, enterState, loginState, gameState):
+        self.ui.groupBox_Enter.setVisible(enterState)
+        self.ui.groupBox_LogIn.setVisible(loginState)
+        self.ui.groupBox_Game.setVisible(gameState)
+
+    def confugure_entry_form(self):
         self.ui.label_money.setText(f"{self.cash}")
+
+    def confugure_game_form(self):
+        pass
 
     def set_tcp_socket(self, socket):
         self.TCPSocket = socket
@@ -154,5 +144,6 @@ if __name__ == "__main__":
     application.ui.pushButton_register.clicked.connect(application.register)
     application.ui.pushButton_connect.clicked.connect(application.login)
     application.ui.pushButton_activate.clicked.connect(application.activate)
+    application.ui.pushButton_creategame.clicked.connect(application.create_room)
 
     sys.exit(app.exec_())
