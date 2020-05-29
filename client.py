@@ -30,8 +30,9 @@ class Window(QtWidgets.QWidget):
         self.STATE = settings.LOGGIN
 
     def create_room(self):
-
-        pass
+        message = {settings.MODE_KEY: settings.MODE_CREATE_GAME, settings.LOGIN_KEY:
+                   application.ui.lineEdit_gamename.text(), settings.PASSWORD_KEY: self.ui.lineEdit_gamepassword.text()}
+        self.send_to_server(message)
 
     def refresh_main_ui(self):
         self.ui.label_money.setText(f"{self.cash}")
@@ -83,7 +84,8 @@ class Window(QtWidgets.QWidget):
         if mode == settings.MODE_REGISTER:
             if data[settings.RESULT_KEY] == settings.SUCCESS:
                 self.cash = data[settings.CASH_KEY]
-                self.manage_gui()
+                self.set_form(True, False, False)
+                self.confugure_entry_form()
                 return True
 
         if mode == settings.MODE_DISCONNECT:
@@ -92,6 +94,10 @@ class Window(QtWidgets.QWidget):
         if mode == settings.MODE_DONATE:
             self.cash = data[settings.CASH_KEY]
             self.refresh_main_ui()
+
+        if mode == settings.MODE_CREATE_GAME:
+            if data[settings.RESULT_KEY] == settings.SUCCESS:
+                self.set_form(False, False, True)
 
     def process_message(self):
         processed_data = {}

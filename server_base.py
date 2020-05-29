@@ -95,6 +95,20 @@ class Window(QtWidgets.QWidget):
                 message = {settings.MODE_KEY: settings.MODE_DONATE, settings.CASH_KEY: cash}
                 connection.send(self.serialize(message))
                 return True
+
+        if mode == settings.MODE_CREATE_GAME:
+            if data[settings.LOGIN_KEY] not in self.rooms.keys():
+                self.rooms[data[settings.LOGIN_KEY]] = {
+                    settings.PASSWORD_KEY: data[settings.PASSWORD_KEY], settings.ADMIN_KEY: client_id, settings.PLAYERS_KEY: []}
+                message = {settings.MODE_KEY: settings.MODE_CREATE_GAME,
+                           settings.RESULT_KEY: settings.SUCCESS}
+                connection.send(self.serialize(message))
+            else:
+                message = {settings.MODE_KEY: settings.MODE_CREATE_GAME,
+                           settings.RESULT_KEY: settings.FAIL}
+                connection.send(self.serialize(message))
+            return True
+
         return False
 
     def new_message_serv(self):
