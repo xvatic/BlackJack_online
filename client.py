@@ -19,6 +19,7 @@ class Window(QtWidgets.QWidget):
         self.NEEDED_PORT = 12345
         self.cash = 0
         self.login_player = ''
+        self.current_room = ''
 
         self.message_list = []
         self.clients = {}
@@ -32,6 +33,7 @@ class Window(QtWidgets.QWidget):
         self.state = settings.LOGGIN
 
     def join_room(self):
+
         message = {settings.MODE_KEY: settings.MODE_JOIN_GAME, settings.LOGIN_KEY:
                    str(application.ui.comboBox_rooms.currentText()), settings.PASSWORD_KEY: self.ui.lineEdit_gamepassword.text()}
         self.send_to_server(message)
@@ -43,14 +45,10 @@ class Window(QtWidgets.QWidget):
 
     def refresh_main_ui(self):
         self.ui.label_money.setText(f"{self.cash}")
+        self.ui.comboBox_rooms.addItems(self.rooms)
 
     def refresh_game_ui(self):
-        try:
-            self.ui.label_player1.setText(self.places[0])
-            self.ui.label_player2.setText(self.places[1])
-            self.ui.label_player3.setText(self.places[2])
-        except:
-            pass
+        self.ui.label_player1.setText(self.places[0])
 
     def activate(self):
         code = self.ui.lineEdit_code.text()
@@ -122,12 +120,12 @@ class Window(QtWidgets.QWidget):
         if mode == settings.MODE_ROOMS:
             self.rooms = message[settings.ROOMS_KEY]
             if self.state == settings.MAIN:
-                self.ui.comboBox_rooms.addItems(self.rooms)
+                self.refresh_main_ui()
             return True
 
         if mode == settings.MODE_PLAYERS:
             if self.state == settings.GAME:
-                self.configure_game_form(message)
+                self.confugure_game_form(message)
                 self.refresh_game_ui()
             return True
 
@@ -136,6 +134,7 @@ class Window(QtWidgets.QWidget):
         data = self.TCPSocket.flush()
         try:
             processed_data = self.deserialize(data)
+            print(processed_data)
         except EOFError:
             pass
         if self.process_request(processed_data) == True:
@@ -155,12 +154,12 @@ class Window(QtWidgets.QWidget):
 
     def confugure_game_form(self, info):
         self.places.clear()
-        if data[settings.ADMIN_KEY] == self.login:
-            self.places = data[settings.PLAYERS_KEY]
-        elif self.login in data[settings.ADMIN_KEY]:
-            data[settings.PLAYERS_KEY].pop(self.login)
-            self.places.append(data[settings.ADMIN_KEY])
-            self.places += data[settings.PLAYERS_KEY]
+        if info[settings.ADMIN_KEY] == self.login_player:
+            self.places = info[settings.PLAYERS_KEY]
+        elif self.login_player in info[settings.PLAYERS_KEY]:
+            info[settings.PLAYERS_KEY].pop(self.login)
+            self.places.append(info[settings.ADMIN_KEY])
+            self.places += info[settings.PLAYERS_KEY]
         return True
 
     def set_tcp_socket(self, socket):

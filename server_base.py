@@ -30,7 +30,7 @@ class Window(QtWidgets.QWidget):
             if self.rooms[key][settings.ADMIN_KEY] == client_id or client_id in self.rooms[key][settings.PLAYERS_KEY]:
                 players = []
                 for id in self.rooms[key][settings.PLAYERS_KEY]:
-                    players.append(id)
+                    players.append(self.client_info[id])
                 message = {settings.MODE_KEY: settings.MODE_PLAYERS, settings.ADMIN_KEY:
                            self.client_info[self.rooms[key][settings.ADMIN_KEY]], settings.PLAYERS_KEY: players}
                 for client_value, address_value in self.clients.items():
@@ -142,8 +142,9 @@ class Window(QtWidgets.QWidget):
             return True
 
         if mode == settings.MODE_JOIN_GAME:
+
             client_id, client_ip = str(address[1]), address[0]
-            if data[settings.LOGIN_KEY] not in self.rooms.keys():
+            if data[settings.LOGIN_KEY] in self.rooms.keys():
                 if self.rooms[data[settings.LOGIN_KEY]][settings.PASSWORD_KEY] == data[settings.PASSWORD_KEY]:
                     self.rooms[data[settings.LOGIN_KEY]][settings.PLAYERS_KEY].append(client_id)
                     message = {settings.MODE_KEY: settings.MODE_JOIN_GAME,
