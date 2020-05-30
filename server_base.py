@@ -25,6 +25,27 @@ class Window(QtWidgets.QWidget):
         self.ui.textEdit_server_log.append(f'{message_converted} {address}')
         final_message = self.serialize(final_message)
 
+    def refresh_room_info(self, client_id):
+        for key in self.rooms:
+            if self.rooms[key][settings.ADMIN_KEY] == client_id or client_id in self.rooms[key][settings.PLAYERS_KEY]:
+                players = []
+                for id in self.rooms[key][settings.PLAYERS_KEY]:
+                    players.append(id)
+                message = {settings.MODE_KEY: settings.MODE_PLAYERS, settings.ADMIN_KEY:
+                           self.client_info[self.rooms[key][settings.ADMIN_KEY]], settings.PLAYERS_KEY: players}
+                for client_value, address_value in self.clients.items():
+                    if address_value == self.rooms[key][settings.ADMIN_KEY] or address_value in self.rooms[key][settings.PLAYERS_KEY]:
+                        client_value.send(self.serialize(message))
+
+    def refresh_rooms(self):
+        if len(self.rooms) != 0:
+            message = {settings.MODE_KEY: settings.MODE_ROOMS, settings.ROOMS_KEY: []}
+            for key in self.rooms:
+                if len(self.rooms[key][settings.PLAYERS_KEY]) < 3:
+                    message[settings.ROOMS_KEY].append(key)
+            for client_value, address_value in self.clients.items():
+                client_value.send(self.serialize(message))
+
     def string_to_dictionary(self, message):
         content = message.split('~')
         mode, client_id, reciever, login, message = content[0], content[1], content[2], content[3], content[4]
@@ -63,7 +84,10 @@ class Window(QtWidgets.QWidget):
 
                 message = {settings.MODE_KEY: settings.MODE_CONNECT,
                            settings.RESULT_KEY: settings.SUCCESS, settings.CASH_KEY: cash}
+
                 connection.send(self.serialize(message))
+
+                self.refresh_rooms()
                 return True
             else:
                 message = {settings.MODE_KEY: settings.MODE_CONNECT,
@@ -79,7 +103,11 @@ class Window(QtWidgets.QWidget):
                 cash = self.database.get_cash(login)
                 message = {settings.MODE_KEY: settings.MODE_REGISTER,
                            settings.RESULT_KEY: settings.SUCCESS, settings.CASH_KEY: cash}
+
                 connection.send(self.serialize(message))
+
+                self.refresh_rooms()
+
                 return True
             else:
                 message = {settings.MODE_KEY: settings.MODE_REGISTER,
@@ -103,9 +131,29 @@ class Window(QtWidgets.QWidget):
                     settings.PASSWORD_KEY: data[settings.PASSWORD_KEY], settings.ADMIN_KEY: client_id, settings.PLAYERS_KEY: []}
                 message = {settings.MODE_KEY: settings.MODE_CREATE_GAME,
                            settings.RESULT_KEY: settings.SUCCESS}
+                time.sleep(0.2)
                 connection.send(self.serialize(message))
+                self.refresh_rooms()
+                self.refresh_room_info(client_id)
             else:
                 message = {settings.MODE_KEY: settings.MODE_CREATE_GAME,
+                           settings.RESULT_KEY: settings.FAIL}
+                connection.send(self.serialize(message))
+            return True
+
+        if mode == settings.MODE_JOIN_GAME:
+            client_id, client_ip = str(address[1]), address[0]
+            if data[settings.LOGIN_KEY] not in self.rooms.keys():
+                if self.rooms[data[settings.LOGIN_KEY]][settings.PASSWORD_KEY] == data[settings.PASSWORD_KEY]:
+                    self.rooms[data[settings.LOGIN_KEY]][settings.PLAYERS_KEY].append(client_id)
+                    message = {settings.MODE_KEY: settings.MODE_JOIN_GAME,
+                               settings.RESULT_KEY: settings.SUCCESS}
+                    time.sleep(0.2)
+                    connection.send(self.serialize(message))
+                    self.refresh_rooms()
+                    self.refresh_room_info(client_id)
+            else:
+                message = {settings.MODE_KEY: settings.MODE_JOIN_GAME,
                            settings.RESULT_KEY: settings.FAIL}
                 connection.send(self.serialize(message))
             return True

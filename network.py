@@ -87,6 +87,7 @@ class TCPTools(QtWidgets.QWidget):
                         data = self.socket.recv(1024)
                     self.fill(data)
                     self.message_signal.emit()
+                    time.sleep(0.5)
             except:
                 self.stopped = True
 

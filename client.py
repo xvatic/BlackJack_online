@@ -22,12 +22,19 @@ class Window(QtWidgets.QWidget):
 
         self.message_list = []
         self.clients = {}
+        self.rooms = []
+        self.places = []
         self.reciever_address = settings.MARKER_ALL
 
         self.LOGGIN = '1'
         self.MAIN = '2'
         self.GAME = '3'
-        self.STATE = settings.LOGGIN
+        self.state = settings.LOGGIN
+
+    def join_room(self):
+        message = {settings.MODE_KEY: settings.MODE_JOIN_GAME, settings.LOGIN_KEY:
+                   str(application.ui.comboBox_rooms.currentText()), settings.PASSWORD_KEY: self.ui.lineEdit_gamepassword.text()}
+        self.send_to_server(message)
 
     def create_room(self):
         message = {settings.MODE_KEY: settings.MODE_CREATE_GAME, settings.LOGIN_KEY:
@@ -36,6 +43,14 @@ class Window(QtWidgets.QWidget):
 
     def refresh_main_ui(self):
         self.ui.label_money.setText(f"{self.cash}")
+
+    def refresh_game_ui(self):
+        try:
+            self.ui.label_player1.setText(self.places[0])
+            self.ui.label_player2.setText(self.places[1])
+            self.ui.label_player3.setText(self.places[2])
+        except:
+            pass
 
     def activate(self):
         code = self.ui.lineEdit_code.text()
@@ -68,22 +83,24 @@ class Window(QtWidgets.QWidget):
             application.ui.lineEdit_login.text(), application.ui.lineEdit_2_password.text())
         self.TCPSocket.register()
 
-    def process_request(self, data):
+    def process_request(self, message):
         try:
-            mode = data[settings.MODE_KEY]
+            mode = message[settings.MODE_KEY]
         except KeyError:
             return False
 
         if mode == settings.MODE_CONNECT:
-            if data[settings.RESULT_KEY] == settings.SUCCESS:
-                self.cash = data[settings.CASH_KEY]
+            if message[settings.RESULT_KEY] == settings.SUCCESS:
+                self.state = settings.MAIN
+                self.cash = message[settings.CASH_KEY]
                 self.set_form(True, False, False)
                 self.confugure_entry_form()
                 return True
 
         if mode == settings.MODE_REGISTER:
-            if data[settings.RESULT_KEY] == settings.SUCCESS:
-                self.cash = data[settings.CASH_KEY]
+            if message[settings.RESULT_KEY] == settings.SUCCESS:
+                self.state = settings.MAIN
+                self.cash = message[settings.CASH_KEY]
                 self.set_form(True, False, False)
                 self.confugure_entry_form()
                 return True
@@ -92,12 +109,27 @@ class Window(QtWidgets.QWidget):
             return True
 
         if mode == settings.MODE_DONATE:
-            self.cash = data[settings.CASH_KEY]
+            self.cash = message[settings.CASH_KEY]
             self.refresh_main_ui()
+            return True
 
-        if mode == settings.MODE_CREATE_GAME:
-            if data[settings.RESULT_KEY] == settings.SUCCESS:
+        if mode == settings.MODE_CREATE_GAME or mode == settings.MODE_JOIN_GAME:
+            self.state = settings.GAME
+            if message[settings.RESULT_KEY] == settings.SUCCESS:
                 self.set_form(False, False, True)
+            return True
+
+        if mode == settings.MODE_ROOMS:
+            self.rooms = message[settings.ROOMS_KEY]
+            if self.state == settings.MAIN:
+                self.ui.comboBox_rooms.addItems(self.rooms)
+            return True
+
+        if mode == settings.MODE_PLAYERS:
+            if self.state == settings.GAME:
+                self.configure_game_form(message)
+                self.refresh_game_ui()
+            return True
 
     def process_message(self):
         processed_data = {}
@@ -121,8 +153,15 @@ class Window(QtWidgets.QWidget):
     def confugure_entry_form(self):
         self.ui.label_money.setText(f"{self.cash}")
 
-    def confugure_game_form(self):
-        pass
+    def confugure_game_form(self, info):
+        self.places.clear()
+        if data[settings.ADMIN_KEY] == self.login:
+            self.places = data[settings.PLAYERS_KEY]
+        elif self.login in data[settings.ADMIN_KEY]:
+            data[settings.PLAYERS_KEY].pop(self.login)
+            self.places.append(data[settings.ADMIN_KEY])
+            self.places += data[settings.PLAYERS_KEY]
+        return True
 
     def set_tcp_socket(self, socket):
         self.TCPSocket = socket
@@ -151,5 +190,6 @@ if __name__ == "__main__":
     application.ui.pushButton_connect.clicked.connect(application.login)
     application.ui.pushButton_activate.clicked.connect(application.activate)
     application.ui.pushButton_creategame.clicked.connect(application.create_room)
+    application.ui.pushButton_choosegame.clicked.connect(application.join_room)
 
     sys.exit(app.exec_())
