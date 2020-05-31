@@ -25,7 +25,8 @@ class Window(QtWidgets.QWidget):
         self.ui.textEdit_server_log.append(f'{message_converted} {address}')
         final_message = self.serialize(final_message)
 
-    def send_text_message(self, client_id, message):
+    def send_text_message(self, message, client_id):
+        print('WORKS')
         for key in self.rooms:
             if self.rooms[key][settings.ADMIN_KEY] == client_id or client_id in self.rooms[key][settings.PLAYERS_KEY]:
                 for client_value, address_value in self.clients.items():
@@ -155,11 +156,10 @@ class Window(QtWidgets.QWidget):
                     self.rooms[data[settings.LOGIN_KEY]][settings.PLAYERS_KEY].append(client_id)
                     message = {settings.MODE_KEY: settings.MODE_JOIN_GAME,
                                settings.RESULT_KEY: settings.SUCCESS}
-                    time.sleep(0.2)
+
                     connection.send(self.serialize(message))
                     self.refresh_rooms()
-                    self.refresh_room_info(client_id)
-                    time.sleep(0.5)
+                    time.sleep(1)
                     self.refresh_room_info(client_id)
 
             else:
