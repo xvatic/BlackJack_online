@@ -25,6 +25,13 @@ class Window(QtWidgets.QWidget):
         self.ui.textEdit_server_log.append(f'{message_converted} {address}')
         final_message = self.serialize(final_message)
 
+    def send_text_message(self, client_id, message):
+        for key in self.rooms:
+            if self.rooms[key][settings.ADMIN_KEY] == client_id or client_id in self.rooms[key][settings.PLAYERS_KEY]:
+                for client_value, address_value in self.clients.items():
+                    if address_value == self.rooms[key][settings.ADMIN_KEY] or address_value in self.rooms[key][settings.PLAYERS_KEY]:
+                        client_value.send(self.serialize(message))
+
     def refresh_room_info(self, client_id):
         for key in self.rooms:
             if self.rooms[key][settings.ADMIN_KEY] == client_id or client_id in self.rooms[key][settings.PLAYERS_KEY]:
@@ -142,7 +149,6 @@ class Window(QtWidgets.QWidget):
             return True
 
         if mode == settings.MODE_JOIN_GAME:
-
             client_id, client_ip = str(address[1]), address[0]
             if data[settings.LOGIN_KEY] in self.rooms.keys():
                 if self.rooms[data[settings.LOGIN_KEY]][settings.PASSWORD_KEY] == data[settings.PASSWORD_KEY]:
@@ -153,10 +159,18 @@ class Window(QtWidgets.QWidget):
                     connection.send(self.serialize(message))
                     self.refresh_rooms()
                     self.refresh_room_info(client_id)
+                    time.sleep(0.5)
+                    self.refresh_room_info(client_id)
+
             else:
                 message = {settings.MODE_KEY: settings.MODE_JOIN_GAME,
                            settings.RESULT_KEY: settings.FAIL}
                 connection.send(self.serialize(message))
+            return True
+
+        if mode == settings.MODE_COMMON:
+            client_id, client_ip = str(address[1]), address[0]
+            self.send_text_message(data, client_id)
             return True
 
         return False
@@ -185,12 +199,6 @@ class Window(QtWidgets.QWidget):
 
         if self.process_request(processed_data, connection, address) == True:
             return
-
-        if reciever == settings.MARKER_ALL:
-            self.store(mode, client_id, reciever, login, message_converted)
-
-        if mode == settings.MODE_COMMON:
-            final_message = self.common_message(mode, client_id, reciever, login, message_converted)
 
     def send_to_client(self, message, reciever, connection):
         for client_value, address_value in self.clients.items():

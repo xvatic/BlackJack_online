@@ -32,8 +32,12 @@ class Window(QtWidgets.QWidget):
         self.GAME = '3'
         self.state = settings.LOGGIN
 
-    def join_room(self):
+    def send_text_message(self):
+        message = {settings.MODE_KEY: settings.MODE_COMMON, settings.LOGIN_KEY: self.login_player,
+                   settings.MESSAGE_KEY: self.ui.lineEdit_message.text()}
+        self.send_to_server(message)
 
+    def join_room(self):
         message = {settings.MODE_KEY: settings.MODE_JOIN_GAME, settings.LOGIN_KEY:
                    str(application.ui.comboBox_rooms.currentText()), settings.PASSWORD_KEY: self.ui.lineEdit_gamepassword.text()}
         self.send_to_server(message)
@@ -48,7 +52,12 @@ class Window(QtWidgets.QWidget):
         self.ui.comboBox_rooms.addItems(self.rooms)
 
     def refresh_game_ui(self):
-        self.ui.label_player1.setText(self.places[0])
+        try:
+            self.ui.label_player1.setText(self.places[0])
+            self.ui.label_player2.setText(self.places[1])
+            self.ui.label_player3.setText(self.places[2])
+        except:
+            pass
 
     def activate(self):
         code = self.ui.lineEdit_code.text()
@@ -123,6 +132,11 @@ class Window(QtWidgets.QWidget):
                 self.refresh_main_ui()
             return True
 
+        if mode == settings.MODE_COMMON:
+            if self.state == settings.GAME and message[settings.LOGIN_KEY] != self.login_player:
+                self.append_message(message)
+            return True
+
         if mode == settings.MODE_PLAYERS:
             if self.state == settings.GAME:
                 self.confugure_game_form(message)
@@ -134,7 +148,6 @@ class Window(QtWidgets.QWidget):
         data = self.TCPSocket.flush()
         try:
             processed_data = self.deserialize(data)
-            print(processed_data)
         except EOFError:
             pass
         if self.process_request(processed_data) == True:
@@ -143,6 +156,17 @@ class Window(QtWidgets.QWidget):
     def send_to_server(self, message):
         message = self.serialize(message)
         self.TCPSocket.send_to_server(message)
+
+    def append_message(self, message):
+        try:
+            if message[settings.LOGIN_KEY] == self.places[0]:
+                self.ui.label_message1.setText(message[settings.MESSAGE_KEY])
+            if message[settings.LOGIN_KEY] == self.places[1]:
+                self.ui.label_message2.setText(message[settings.MESSAGE_KEY])
+            if message[settings.LOGIN_KEY] == self.places[2]:
+                self.ui.label_message3.setText(message[settings.MESSAGE_KEY])
+        except:
+            pass
 
     def set_form(self, enterState, loginState, gameState):
         self.ui.groupBox_Enter.setVisible(enterState)
@@ -156,10 +180,12 @@ class Window(QtWidgets.QWidget):
         self.places.clear()
         if info[settings.ADMIN_KEY] == self.login_player:
             self.places = info[settings.PLAYERS_KEY]
+            self.refresh_game_ui()
         elif self.login_player in info[settings.PLAYERS_KEY]:
-            info[settings.PLAYERS_KEY].pop(self.login)
+            info[settings.PLAYERS_KEY].remove(self.login_player)
             self.places.append(info[settings.ADMIN_KEY])
             self.places += info[settings.PLAYERS_KEY]
+            self.refresh_game_ui()
         return True
 
     def set_tcp_socket(self, socket):
@@ -190,5 +216,6 @@ if __name__ == "__main__":
     application.ui.pushButton_activate.clicked.connect(application.activate)
     application.ui.pushButton_creategame.clicked.connect(application.create_room)
     application.ui.pushButton_choosegame.clicked.connect(application.join_room)
+    application.ui.pushButton_send.clicked.connect(application.send_text_message)
 
     sys.exit(app.exec_())
