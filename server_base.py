@@ -15,6 +15,8 @@ class Window(QtWidgets.QWidget):
         self.history_list = []
         self.client_info = {}
         self.rooms = {}
+        self.game_states = {}
+        self.decks = {}
 
         self.STATE = settings.LOGGIN
 
@@ -25,8 +27,12 @@ class Window(QtWidgets.QWidget):
         self.ui.textEdit_server_log.append(f'{message_converted} {address}')
         final_message = self.serialize(final_message)
 
+    def get_player_room(self, client_id):
+        for key in self.rooms:
+            if self.rooms[key][settings.ADMIN_KEY] == client_id or client_id in self.rooms[key][settings.PLAYERS_KEY]:
+                return key
+
     def send_text_message(self, message, client_id):
-        print('WORKS')
         for key in self.rooms:
             if self.rooms[key][settings.ADMIN_KEY] == client_id or client_id in self.rooms[key][settings.PLAYERS_KEY]:
                 for client_value, address_value in self.clients.items():
@@ -168,6 +174,25 @@ class Window(QtWidgets.QWidget):
                 connection.send(self.serialize(message))
             return True
 
+        if mode == settings.MODE_START:
+            client_id, client_ip = str(address[1]), address[0]
+            room = self.get_player_room(client_id)
+            self.decks[room] = self.game.generate_deck(room)
+            admin = self.client_info[self.rooms[room][settings.ADMIN_KEY]]
+            player1 = self.client_info[self.rooms[room][settings.PLAYERS_KEY][0]]
+            player2 = self.client_info[self.rooms[room][settings.PLAYERS_KEY][0]]
+            player3 = self.client_info[self.rooms[room][settings.PLAYERS_KEY][0]]
+            hand = []
+            self.game_states[room] = {admin: {settings.HAND_KEY: hand, settings.BET_KEY: 0}, player1: {settings.HAND_KEY: hand, settings.BET_KEY: 0}, player2: {
+                settings.HAND_KEY: hand, settings.BET_KEY: 0}, player3: {settings.HAND_KEY: hand, settings.BET_KEY: 0}, settings.DEALER_KEY: 0, settings.DECK_POS_KEY: 8}
+
+            self.game_states[room] = self.game.deal_starting_cards(
+                self.decks[room], self.game_states[room])
+
+            message = {settings.MODE_KEY: settings.MODE_START,
+                       settings.MESSAGE_KEY: self.game_states[room]}
+            self.send_to_room_participants(message, room)
+
         if mode == settings.MODE_COMMON:
             client_id, client_ip = str(address[1]), address[0]
             self.send_text_message(data, client_id)
@@ -208,11 +233,19 @@ class Window(QtWidgets.QWidget):
                 elif reciever == settings.MARKER_ALL:
                     client_value.send(message)
 
+    def send_to_room_participants(self, message, room):
+        for client_value, address_value in self.clients.items():
+            if self.rooms[room][settings.ADMIN_KEY] == address_value or address_value in self.rooms[room][settings.PLAYERS_KEY]:
+                client_value.send(self.serialize(message))
+
     def set_tcp_socket(self, socket):
         self.TCPSocket_app = socket
 
     def set_database_connection(self, database):
         self.database = database
+
+    def set_game_logic(self, game):
+        self.game = game
 
     def thread_option(self):
         while True:
@@ -236,6 +269,7 @@ if __name__ == "__main__":
     import time
 
     from network import TCPTools
+    from game import Game
     from database_interaction import Users
     HOST = socket.gethostbyname('localhost')
     PORT = 12345
@@ -246,7 +280,9 @@ if __name__ == "__main__":
 
     info = Users()
     info.check_database_existing()
+    game = Game()
     application.set_database_connection(info)
+    application.set_game_logic(game)
 
     TCPSocket = TCPTools(application.signal.new_message_serv)
     TCPSocket.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)

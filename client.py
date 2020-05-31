@@ -14,6 +14,9 @@ class Window(QtWidgets.QWidget):
         self.ui.setupUi(self)
         self.signal = New_message_event_handle()
         self.signal.process_message.connect(self.process_message)
+        self.p = self.palette()
+        self.p.setColor(self.backgroundRole(), QtCore.Qt.gray)
+        self.setPalette(self.p)
 
         self.NEEDED_HOST = socket.gethostbyname('localhost')
         self.NEEDED_PORT = 12345
@@ -21,6 +24,7 @@ class Window(QtWidgets.QWidget):
         self.login_player = ''
         self.current_room = ''
 
+        self.game_state = {}
         self.message_list = []
         self.clients = {}
         self.rooms = []
@@ -31,6 +35,14 @@ class Window(QtWidgets.QWidget):
         self.MAIN = '2'
         self.GAME = '3'
         self.state = settings.LOGGIN
+
+    def start_game(self):
+        '''
+        if len(self.places) == 3:
+        '''
+        message = {settings.MODE_KEY: settings.MODE_START,
+                   settings.LOGIN_KEY: self.login_player}
+        self.send_to_server(message)
 
     def send_text_message(self):
         message = {settings.MODE_KEY: settings.MODE_COMMON, settings.LOGIN_KEY: self.login_player,
@@ -124,6 +136,8 @@ class Window(QtWidgets.QWidget):
             self.state = settings.GAME
             if message[settings.RESULT_KEY] == settings.SUCCESS:
                 self.set_form(False, False, True)
+            if mode == settings.MODE_JOIN_GAME:
+                self.ui.pushButton_start.setVisible(False)
             return True
 
         if mode == settings.MODE_ROOMS:
@@ -142,6 +156,11 @@ class Window(QtWidgets.QWidget):
                 self.confugure_game_form(message)
                 self.refresh_game_ui()
             return True
+
+        if mode == settings.MODE_START:
+            self.p.setColor(self.backgroundRole(), QtCore.Qt.cyan)
+            self.setPalette(self.p)
+            self.game_state = message[settings.MESSAGE_KEY]
 
     def process_message(self):
         processed_data = {}
@@ -217,5 +236,6 @@ if __name__ == "__main__":
     application.ui.pushButton_creategame.clicked.connect(application.create_room)
     application.ui.pushButton_choosegame.clicked.connect(application.join_room)
     application.ui.pushButton_send.clicked.connect(application.send_text_message)
+    application.ui.pushButton_start.clicked.connect(application.start_game)
 
     sys.exit(app.exec_())
