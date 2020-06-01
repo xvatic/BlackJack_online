@@ -44,21 +44,24 @@ class Window(QtWidgets.QWidget):
         label_Player_card.show()
 
     def draw_hand(self):
-
         x = 20
-        for card in self.game_state[self.places[0]][settings.HAND_KEY]:
+        hand = self.game_state[self.places[0]][0].split('~')
+        for card in hand:
             self.gui_set_cards(x, 400, card)
             x += 15
         x = 300
-        for card in self.game_state[self.places[1]][settings.HAND_KEY]:
+        hand = self.game_state[self.places[1]][0].split('~')
+        for card in hand:
             self.gui_set_cards(x, 220, card)
             x += 15
         x = 570
-        for card in self.game_state[self.places[2]][settings.HAND_KEY]:
+        hand = self.game_state[self.places[2]][0].split('~')
+        for card in hand:
             self.gui_set_cards(x, 360, card)
             x += 15
         x = 280
-        for card in self.game_state[self.login_player][settings.HAND_KEY]:
+        hand = self.game_state[self.login_player][0].split('~')
+        for card in hand:
             self.gui_set_cards(x, 350, card)
             x += 15
 
