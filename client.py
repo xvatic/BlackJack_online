@@ -36,6 +36,32 @@ class Window(QtWidgets.QWidget):
         self.GAME = '3'
         self.state = settings.LOGGIN
 
+    def gui_set_cards(self, x, y, card):
+        label_Player_card = QtWidgets.QLabel(application.ui.groupBox_Game)
+        label_Player_card.setGeometry(QtCore.QRect(x, y, 30, 50))
+        label_Player_card.setPixmap(QtGui.QPixmap(f"{settings.PIC_PATH}{card}.png"))
+        label_Player_card.setScaledContents(True)
+        label_Player_card.show()
+
+    def draw_hand(self):
+
+        x = 20
+        for card in self.game_state[self.places[0]][settings.HAND_KEY]:
+            self.gui_set_cards(x, 400, card)
+            x += 15
+        x = 300
+        for card in self.game_state[self.places[1]][settings.HAND_KEY]:
+            self.gui_set_cards(x, 220, card)
+            x += 15
+        x = 570
+        for card in self.game_state[self.places[2]][settings.HAND_KEY]:
+            self.gui_set_cards(x, 360, card)
+            x += 15
+        x = 280
+        for card in self.game_state[self.login_player][settings.HAND_KEY]:
+            self.gui_set_cards(x, 350, card)
+            x += 15
+
     def start_game(self):
         '''
         if len(self.places) == 3:
@@ -61,6 +87,7 @@ class Window(QtWidgets.QWidget):
 
     def refresh_main_ui(self):
         self.ui.label_money.setText(f"{self.cash}")
+        self.ui.comboBox_rooms.clear()
         self.ui.comboBox_rooms.addItems(self.rooms)
 
     def refresh_game_ui(self):
@@ -161,6 +188,7 @@ class Window(QtWidgets.QWidget):
             self.p.setColor(self.backgroundRole(), QtCore.Qt.cyan)
             self.setPalette(self.p)
             self.game_state = message[settings.MESSAGE_KEY]
+            self.draw_hand()
 
     def process_message(self):
         processed_data = {}

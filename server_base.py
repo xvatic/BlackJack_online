@@ -180,14 +180,15 @@ class Window(QtWidgets.QWidget):
             self.decks[room] = self.game.generate_deck(room)
             admin = self.client_info[self.rooms[room][settings.ADMIN_KEY]]
             player1 = self.client_info[self.rooms[room][settings.PLAYERS_KEY][0]]
-            player2 = self.client_info[self.rooms[room][settings.PLAYERS_KEY][0]]
-            player3 = self.client_info[self.rooms[room][settings.PLAYERS_KEY][0]]
+            player2 = self.client_info[self.rooms[room][settings.PLAYERS_KEY][1]]
+            player3 = self.client_info[self.rooms[room][settings.PLAYERS_KEY][2]]
             hand = []
             self.game_states[room] = {admin: {settings.HAND_KEY: hand, settings.BET_KEY: 0}, player1: {settings.HAND_KEY: hand, settings.BET_KEY: 0}, player2: {
                 settings.HAND_KEY: hand, settings.BET_KEY: 0}, player3: {settings.HAND_KEY: hand, settings.BET_KEY: 0}, settings.DEALER_KEY: 0, settings.DECK_POS_KEY: 8}
 
             self.game_states[room] = self.game.deal_starting_cards(
                 self.decks[room], self.game_states[room])
+            print(self.game_states[room])
 
             message = {settings.MODE_KEY: settings.MODE_START,
                        settings.MESSAGE_KEY: self.game_states[room]}

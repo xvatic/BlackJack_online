@@ -17,14 +17,12 @@ class Game(QtWidgets.QWidget):
         pass
 
     def deal_starting_cards(self, deck, state):
-        buf = []
         i = 0
-        for key in state:
-            if key != settings.DEALER_KEY and key != settings.DECK_POS_KEY:
-                buf.append(deck[i])
-                buf.append(deck[i+1])
-                state[key][settings.HAND_KEY] = buf
-                i += 2
+        for key, parameters in state.items():
+            parameters[settings.HAND_KEY].append(deck[i])
+            parameters[settings.HAND_KEY].append(deck[i+1])
+            continue
+            i += 2
         return state
 
     def generate_deck(self, room):

@@ -43,6 +43,7 @@ SUCCESS = '12'
 FAIL = '13'
 
 PIC_FILE_PATH = '/Users/zhenya_rs6/Desktop/BlackJack Online/BlackJack_online/Files/playericon.png'
+PIC_PATH = '/Users/zhenya_rs6/Desktop/BlackJack Online/BlackJack_online/Files/'
 
 CARDS = [
     'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9', 'c10', 'cj', 'cq', 'ck', 'ca',
