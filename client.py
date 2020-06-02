@@ -65,6 +65,12 @@ class Window(QtWidgets.QWidget):
             self.gui_set_cards(x, 350, card)
             x += 15
 
+    def make_bet(self):
+        bet = int(application.ui.lineEdit_bet.text())
+        if bet < self.cash:
+            message = {settings.MODE_KEY: settings.MODE_BET, settings: LOGIN_KEY: self.login_player, settings.BET_KEY: bet}
+            self.send_to_server(message)
+
     def start_game(self):
         '''
         if len(self.places) == 3:
