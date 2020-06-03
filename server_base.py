@@ -31,10 +31,26 @@ class Window(QtWidgets.QWidget):
         message = {settings.MODE_KEY: settings.GAME, settings.MESSAGE_KEY: self.game_states[room]}
         self.send_to_room_participants(message, room)
 
+    def update_players_cash(self, room):
+        for key in self.game_states[room]:
+            if key != settings.DECK_POS_KEY and key != settings.DEALER_KEY:
+                if self.game_states[room][key][0] == settings.WIN:
+                    self.database.inc_players_cash(self.game_states[room][key][1], key)
+                elif self.game_states[room][key][0] == settings.LOSS:
+                    self.database.dec_players_cash(self.game_states[room][key][1], key)
+
     def send_game_result(self, room):
         message = {settings.MODE_KEY: settings.MODE_GAME_RESULT,
                    settings.MESSAGE_KEY: self.game_states[room]}
         self.send_to_room_participants(message, room)
+
+    def send_players_cash(self, room):
+        for client_value, address_value in self.clients.items():
+            if address_value == self.rooms[room][settings.ADMIN_KEY] or address_value in self.rooms[room][settings.PLAYERS_KEY]:
+                login = self.client_info[address_value]
+                message = {settings.MODE_KEY: settings.MODE_DONATE,
+                           settings.CASH_KEY: self.database.get_cash(login)}
+                client_value.send(self.serialize(message))
 
     def get_player_room(self, client_id):
         for key in self.rooms:
@@ -50,7 +66,7 @@ class Window(QtWidgets.QWidget):
 
     def refresh_room_info(self, client_id):
         for key in self.rooms:
-            if self.rooms[key][settings.ADMIN_KEY] == client_id or client_id in self.rooms[key][settings.PLAYERS_KEY]:
+            if self.rooms[key][settings.ADMIN_KEY] == client_id or client_id in self.rooms[key][settings.PLAYERS_KEY] or self.rooms[key] == self.rooms[client_id]:
                 players = []
                 for id in self.rooms[key][settings.PLAYERS_KEY]:
                     players.append(self.client_info[id])
@@ -66,6 +82,10 @@ class Window(QtWidgets.QWidget):
             for key in self.rooms:
                 if len(self.rooms[key][settings.PLAYERS_KEY]) < 3:
                     message[settings.ROOMS_KEY].append(key)
+            for client_value, address_value in self.clients.items():
+                client_value.send(self.serialize(message))
+        else:
+            message = {settings.MODE_KEY: settings.MODE_ROOMS, settings.ROOMS_KEY: []}
             for client_value, address_value in self.clients.items():
                 client_value.send(self.serialize(message))
 
@@ -180,6 +200,27 @@ class Window(QtWidgets.QWidget):
                 connection.send(self.serialize(message))
             return True
 
+        if mode == settings.MODE_LEAVE_GAME:
+            client_id, client_ip = str(address[1]), address[0]
+            room = self.get_player_room(client_id)
+            if self.rooms[room][settings.ADMIN_KEY] == client_id:
+                message = {settings.MODE_KEY: settings.MODE_CLOSE_GAME}
+                self.send_to_room_participants(message, room)
+                self.send_players_cash(room)
+                self.rooms.pop(room)
+                self.refresh_rooms()
+            elif client_id in self.rooms[room][settings.PLAYERS_KEY]:
+                self.rooms[room][settings.PLAYERS_KEY].remove(client_id)
+                login = self.client_info[client_id]
+                message = {settings.MODE_KEY: settings.MODE_DONATE,
+                           settings.CASH_KEY: self.database.get_cash(login)}
+                connection.send(self.serialize(message))
+                self.refresh_rooms()
+                time.sleep(1)
+                self.refresh_room_info(room)
+
+            return True
+
         if mode == settings.MODE_START:
             client_id, client_ip = str(address[1]), address[0]
             room = self.get_player_room(client_id)
@@ -214,7 +255,9 @@ class Window(QtWidgets.QWidget):
             self.game_states[room] = self.game.process_move(
                 data, self.game_states[room], self.decks[room])
             if self.game_states[room][settings.DEALER_KEY] > 0:
+                self.update_players_cash(room)
                 self.send_game_result(room)
+                self.game_states.pop(room)
             else:
                 self.send_game_state(room)
 

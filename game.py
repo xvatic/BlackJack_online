@@ -25,11 +25,11 @@ class Game(QtWidgets.QWidget):
         for key in state:
             if key != settings.DEALER_KEY and key != settings.DECK_POS_KEY:
                 if self.count_score(state[key][0]) > state[settings.DEALER_KEY] and self.count_score(state[key][0]) <= settings.MAX_SCORE:
-                    state[key] = settings.WIN
+                    state[key][0] = settings.WIN
                 elif self.count_score(state[key][0]) == state[settings.DEALER_KEY] and self.count_score(state[key][0]) <= settings.MAX_SCORE:
-                    state[key] = settings.DRAW
+                    state[key][0] = settings.DRAW
                 else:
-                    state[key] = settings.LOSS
+                    state[key][0] = settings.LOSS
         return state
 
     def check_bet(self, state):

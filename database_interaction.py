@@ -47,6 +47,18 @@ class Users():
         cash = self.cursor.fetchone()[0]
         return cash
 
+    def inc_players_cash(self, bet, login):
+        self.cursor.execute(
+            f"UPDATE users SET cash = cash +{bet} WHERE login = '{login}' "
+        )
+        self.clients_db.commit()
+
+    def dec_players_cash(self, bet, login):
+        self.cursor.execute(
+            f"UPDATE users SET cash = cash -{bet} WHERE login = '{login}' "
+        )
+        self.clients_db.commit()
+
     def check_promocode(self, promocode, login):
         self.cursor.execute(
             f"SELECT cash FROM donation WHERE promocode = '{promocode}' "

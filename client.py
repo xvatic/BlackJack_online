@@ -37,6 +37,15 @@ class Window(QtWidgets.QWidget):
         self.GAME = '3'
         self.state = settings.LOGGIN
 
+    def leave(self):
+        message = {settings.MODE_KEY: settings.MODE_LEAVE_GAME, settings.LOGIN_KEY:
+                   self.login_player}
+        self.send_to_server(message)
+        self.state = settings.MAIN
+        self.set_form(True, False, False)
+        self.confugure_entry_form()
+        return True
+
     def gui_set_cards(self, x, y, card):
         label_Player_card = QtWidgets.QLabel(application.ui.groupBox_Game)
         label_Player_card.setGeometry(QtCore.QRect(x, y, 30, 50))
@@ -49,12 +58,14 @@ class Window(QtWidgets.QWidget):
         self.clear_form()
         result = QMessageBox()
         result.setWindowTitle('result')
-        result.setText(f"YOU {self.game_state[self.login_player]}")
+        result.setText(f"YOU {self.game_state[self.login_player][0]}")
         x = result.exec_()
 
     def clear_form(self):
         self.p.setColor(self.backgroundRole(), QtCore.Qt.gray)
         self.setPalette(self.p)
+        self.ui.pushButton.setVisible(True)
+        self.ui.pushButton_leave.setVisible(True)
         for label in self.ui.groupBox_Game.findChildren(QtWidgets.QLabel, "label_Player_card"):
             label.deleteLater()
 
@@ -104,6 +115,7 @@ class Window(QtWidgets.QWidget):
     def make_bet(self):
         bet = int(application.ui.lineEdit_bet.text())
         if bet < self.cash and self.game_state != {}:
+            self.ui.pushButton.setVisible(False)
             message = {settings.MODE_KEY: settings.MODE_BET,
                        settings.LOGIN_KEY: self.login_player, settings.BET_KEY: bet}
             self.send_to_server(message)
@@ -138,6 +150,9 @@ class Window(QtWidgets.QWidget):
         self.ui.comboBox_rooms.addItems(self.rooms)
 
     def refresh_game_ui(self):
+        self.ui.label_player1.setText('')
+        self.ui.label_player2.setText('')
+        self.ui.label_player3.setText('')
         try:
             self.ui.label_player1.setText(self.places[0])
             self.ui.label_player2.setText(self.places[1])
@@ -222,6 +237,7 @@ class Window(QtWidgets.QWidget):
             return True
 
         if mode == settings.MODE_ROOMS:
+
             self.rooms = message[settings.ROOMS_KEY]
             if self.state == settings.MAIN:
                 self.refresh_main_ui()
@@ -239,9 +255,9 @@ class Window(QtWidgets.QWidget):
             return True
 
         if mode == settings.MODE_START:
-            print(message)
             self.p.setColor(self.backgroundRole(), QtCore.Qt.black)
             self.setPalette(self.p)
+            self.ui.pushButton_leave.setVisible(False)
             self.game_state = message[settings.MESSAGE_KEY]
             self.draw_hand()
             return True
@@ -255,6 +271,12 @@ class Window(QtWidgets.QWidget):
             self.p.setColor(self.backgroundRole(), QtCore.Qt.gray)
             self.setPalette(self.p)
             self.show_game_result()
+
+        if mode == settings.MODE_CLOSE_GAME:
+            self.state = settings.MAIN
+            self.set_form(True, False, False)
+            self.confugure_entry_form()
+            return True
 
     def process_message(self):
         processed_data = {}
@@ -334,5 +356,6 @@ if __name__ == "__main__":
     application.ui.pushButton.clicked.connect(application.make_bet)
     application.ui.pushButton_take.clicked.connect(application.take_card)
     application.ui.pushButton_enough.clicked.connect(application.pass_and_turn)
+    application.ui.pushButton_leave.clicked.connect(application.leave)
 
     sys.exit(app.exec_())
