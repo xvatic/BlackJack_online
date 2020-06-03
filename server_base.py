@@ -27,6 +27,15 @@ class Window(QtWidgets.QWidget):
         self.ui.textEdit_server_log.append(f'{message_converted} {address}')
         final_message = self.serialize(final_message)
 
+    def send_game_state(self, room):
+        message = {settings.MODE_KEY: settings.GAME, settings.MESSAGE_KEY: self.game_states[room]}
+        self.send_to_room_participants(message, room)
+
+    def send_game_state(self, room):
+        message = {settings.MODE_KEY: settings.MODE_GAME_RESULT,
+                   settings.MESSAGE_KEY: self.game_states[room]}
+        self.send_to_room_participants(message, room)
+
     def get_player_room(self, client_id):
         for key in self.rooms:
             if self.rooms[key][settings.ADMIN_KEY] == client_id or client_id in self.rooms[key][settings.PLAYERS_KEY]:
@@ -77,9 +86,6 @@ class Window(QtWidgets.QWidget):
     def deserialize(self, message_byte_form):
         message_dictionary = pickle.loads(message_byte_form)
         return message_dictionary
-
-    def process_game_state(self, state):
-        return
 
     def process_request(self, data, connection, address):
         try:
@@ -193,6 +199,22 @@ class Window(QtWidgets.QWidget):
             message = {settings.MODE_KEY: settings.MODE_START,
                        settings.MESSAGE_KEY: self.game_states[room]}
             self.send_to_room_participants(message, room)
+            return True
+
+        if mode == settings.MODE_BET:
+            client_id, client_ip = str(address[1]), address[0]
+            room = self.get_player_room(client_id)
+            self.game_states[room] = self.game.set_bet(data, self.game_states[room])
+            self.send_game_state(room)
+            return True
+
+        if mode == settings.GAME:
+            client_id, client_ip = str(address[1]), address[0]
+            room = self.get_player_room(client_id)
+            self.game_states[room] = self.game.process_move(
+                data, self.game_states[room], self.decks[room])
+            if self.game_states[room][settings.DEALER_KEY] > 0:
+                self.send_game_result(self, room)
 
         if mode == settings.MODE_COMMON:
             client_id, client_ip = str(address[1]), address[0]
@@ -219,9 +241,6 @@ class Window(QtWidgets.QWidget):
             mode = processed_data[settings.MODE_KEY]
         except KeyError:
             pass
-
-        if mode == settings.MODE_GAME:
-            self.process_game_state(processed_data)
 
         if self.process_request(processed_data, connection, address) == True:
             return

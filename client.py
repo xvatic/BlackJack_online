@@ -41,9 +41,12 @@ class Window(QtWidgets.QWidget):
         label_Player_card.setGeometry(QtCore.QRect(x, y, 30, 50))
         label_Player_card.setPixmap(QtGui.QPixmap(f"{settings.PIC_PATH}{card}.png"))
         label_Player_card.setScaledContents(True)
+        label_Player_card.setObjectName('label_Player_card')
         label_Player_card.show()
 
     def draw_hand(self):
+        for label in self.ui.groupBox_Game.findChildren(QtWidgets.QLabel, "label_Player_card"):
+            label.deleteLater()
         x = 20
         hand = self.game_state[self.places[0]][0].split('~')
         for card in hand:
@@ -65,19 +68,39 @@ class Window(QtWidgets.QWidget):
             self.gui_set_cards(x, 350, card)
             x += 15
 
+    def take_card(self):
+        message = {settings.MODE_KEY: settings.GAME,
+                   settings.LOGIN_KEY: self.login_player, settings.MOVE_KEY: settings.TAKE}
+        self.send_to_server(message)
+
+    def pass_and_turn(self):
+        message = {settings.MODE_KEY: settings.GAME,
+                   settings.LOGIN_KEY: self.login_player, settings.MOVE_KEY: settings.ENOUGH}
+        self.send_to_server(message)
+
+    def refresh_game_state(self):
+        if self.game_state[self.login_player][2] == 1:
+            self.ui.pushButton_take.setVisible(True)
+            self.ui.pushButton_enough.setVisible(True)
+        else:
+            self.ui.pushButton_take.setVisible(False)
+            self.ui.pushButton_enough.setVisible(False)
+
     def make_bet(self):
         bet = int(application.ui.lineEdit_bet.text())
         if bet < self.cash:
-            message = {settings.MODE_KEY: settings.MODE_BET, settings: LOGIN_KEY: self.login_player, settings.BET_KEY: bet}
+            message = {settings.MODE_KEY: settings.MODE_BET,
+                       settings.LOGIN_KEY: self.login_player, settings.BET_KEY: bet}
             self.send_to_server(message)
 
     def start_game(self):
-        '''
-        if len(self.places) == 3:
-        '''
-        message = {settings.MODE_KEY: settings.MODE_START,
-                   settings.LOGIN_KEY: self.login_player}
-        self.send_to_server(message)
+        try:
+            if len(self.places) == 3:
+                message = {settings.MODE_KEY: settings.MODE_START,
+                           settings.LOGIN_KEY: self.login_player}
+                self.send_to_server(message)
+        except:
+            pass
 
     def send_text_message(self):
         message = {settings.MODE_KEY: settings.MODE_COMMON, settings.LOGIN_KEY: self.login_player,
@@ -170,6 +193,9 @@ class Window(QtWidgets.QWidget):
 
         if mode == settings.MODE_CREATE_GAME or mode == settings.MODE_JOIN_GAME:
             self.state = settings.GAME
+            self.ui.pushButton_take.setVisible(False)
+            self.ui.pushButton_enough.setVisible(False)
+
             if message[settings.RESULT_KEY] == settings.SUCCESS:
                 self.set_form(False, False, True)
             if mode == settings.MODE_JOIN_GAME:
@@ -194,10 +220,20 @@ class Window(QtWidgets.QWidget):
             return True
 
         if mode == settings.MODE_START:
+            print(message)
             self.p.setColor(self.backgroundRole(), QtCore.Qt.cyan)
             self.setPalette(self.p)
             self.game_state = message[settings.MESSAGE_KEY]
             self.draw_hand()
+            return True
+
+        if mode == settings.GAME:
+            self.game_state = message[settings.MESSAGE_KEY]
+            self.refresh_game_state()
+
+        if mode == settings.MODE_GAME_RESULT:
+            self.game_state = message[settings.MESSAGE_KEY]
+            self.refresh_game_state()
 
     def process_message(self):
         processed_data = {}
@@ -274,5 +310,8 @@ if __name__ == "__main__":
     application.ui.pushButton_choosegame.clicked.connect(application.join_room)
     application.ui.pushButton_send.clicked.connect(application.send_text_message)
     application.ui.pushButton_start.clicked.connect(application.start_game)
+    application.ui.pushButton.clicked.connect(application.make_bet)
+    application.ui.pushButton_take.clicked.connect(application.take_card)
+    application.ui.pushButton_enough.clicked.connect(application.pass_and_turn)
 
     sys.exit(app.exec_())
