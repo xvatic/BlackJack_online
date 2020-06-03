@@ -1,5 +1,6 @@
 from PyQt5 import Qt, QtCore, QtGui, QtWidgets, uic
 from PyQt5.QtCore import pyqtSignal, QObject
+from PyQt5.QtWidgets import QMessageBox
 import pickle
 import pyglet
 import settings
@@ -44,6 +45,19 @@ class Window(QtWidgets.QWidget):
         label_Player_card.setObjectName('label_Player_card')
         label_Player_card.show()
 
+    def show_game_result(self):
+        self.clear_form()
+        result = QMessageBox()
+        result.setWindowTitle('result')
+        result.setText(f"YOU {self.game_state[self.login_player]}")
+        x = result.exec_()
+
+    def clear_form(self):
+        self.p.setColor(self.backgroundRole(), QtCore.Qt.gray)
+        self.setPalette(self.p)
+        for label in self.ui.groupBox_Game.findChildren(QtWidgets.QLabel, "label_Player_card"):
+            label.deleteLater()
+
     def draw_hand(self):
         for label in self.ui.groupBox_Game.findChildren(QtWidgets.QLabel, "label_Player_card"):
             label.deleteLater()
@@ -79,6 +93,7 @@ class Window(QtWidgets.QWidget):
         self.send_to_server(message)
 
     def refresh_game_state(self):
+        self.draw_hand()
         if self.game_state[self.login_player][2] == 1:
             self.ui.pushButton_take.setVisible(True)
             self.ui.pushButton_enough.setVisible(True)
@@ -88,7 +103,7 @@ class Window(QtWidgets.QWidget):
 
     def make_bet(self):
         bet = int(application.ui.lineEdit_bet.text())
-        if bet < self.cash:
+        if bet < self.cash and self.game_state != {}:
             message = {settings.MODE_KEY: settings.MODE_BET,
                        settings.LOGIN_KEY: self.login_player, settings.BET_KEY: bet}
             self.send_to_server(message)
@@ -174,6 +189,8 @@ class Window(QtWidgets.QWidget):
                 self.set_form(True, False, False)
                 self.confugure_entry_form()
                 return True
+            else:
+                self.TCPSocket.disconnect(self.login_player)
 
         if mode == settings.MODE_REGISTER:
             if message[settings.RESULT_KEY] == settings.SUCCESS:
@@ -182,6 +199,8 @@ class Window(QtWidgets.QWidget):
                 self.set_form(True, False, False)
                 self.confugure_entry_form()
                 return True
+            else:
+                self.TCPSocket.disconnect(self.login_player)
 
         if mode == settings.MODE_DISCONNECT:
             return True
@@ -221,7 +240,7 @@ class Window(QtWidgets.QWidget):
 
         if mode == settings.MODE_START:
             print(message)
-            self.p.setColor(self.backgroundRole(), QtCore.Qt.cyan)
+            self.p.setColor(self.backgroundRole(), QtCore.Qt.black)
             self.setPalette(self.p)
             self.game_state = message[settings.MESSAGE_KEY]
             self.draw_hand()
@@ -233,7 +252,9 @@ class Window(QtWidgets.QWidget):
 
         if mode == settings.MODE_GAME_RESULT:
             self.game_state = message[settings.MESSAGE_KEY]
-            self.refresh_game_state()
+            self.p.setColor(self.backgroundRole(), QtCore.Qt.gray)
+            self.setPalette(self.p)
+            self.show_game_result()
 
     def process_message(self):
         processed_data = {}

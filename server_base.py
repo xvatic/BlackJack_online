@@ -31,7 +31,7 @@ class Window(QtWidgets.QWidget):
         message = {settings.MODE_KEY: settings.GAME, settings.MESSAGE_KEY: self.game_states[room]}
         self.send_to_room_participants(message, room)
 
-    def send_game_state(self, room):
+    def send_game_result(self, room):
         message = {settings.MODE_KEY: settings.MODE_GAME_RESULT,
                    settings.MESSAGE_KEY: self.game_states[room]}
         self.send_to_room_participants(message, room)
@@ -135,7 +135,7 @@ class Window(QtWidgets.QWidget):
                 connection.send(self.serialize(message))
                 return True
         if mode == settings.MODE_DISCONNECT:
-            pass
+            self.clients.pop(connection)
 
         if mode == settings.MODE_DONATE:
             if self.database.check_promocode(data[settings.CODE_KEY], login) == True:
@@ -214,7 +214,9 @@ class Window(QtWidgets.QWidget):
             self.game_states[room] = self.game.process_move(
                 data, self.game_states[room], self.decks[room])
             if self.game_states[room][settings.DEALER_KEY] > 0:
-                self.send_game_result(self, room)
+                self.send_game_result(room)
+            else:
+                self.send_game_state(room)
 
         if mode == settings.MODE_COMMON:
             client_id, client_ip = str(address[1]), address[0]

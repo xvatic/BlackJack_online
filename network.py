@@ -83,6 +83,8 @@ class TCPTools(QtWidgets.QWidget):
                     if self.server_flag:
                         data = connection.recv(1024)
                         self.set_client_connection_info(connection, address)
+                        if data == b'':
+                            self.stopped = True
                     else:
                         data = self.socket.recv(1024)
                     self.fill(data)
@@ -98,7 +100,8 @@ class TCPTools(QtWidgets.QWidget):
             target=self.recieve, args=(connection, address), daemon=True)
         Thread_recieve.start()
 
-    def disconnect(self):
-        self.sending(settings.MODE_DISCONNECT, settings.MARKER_ALL, "left")
+    def disconnect(self, login):
+        final_message = {settings.MODE_KEY: settings.MODE_DISCONNECT, settings.LOGIN_KEY: login}
+        self.send_to_server(self.serialize(final_message))
         self.stopped = True
         self.socket.close()

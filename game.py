@@ -13,20 +13,20 @@ class Game(QtWidgets.QWidget):
         self.password = ''
         self.server_flag = False
 
-    def dealer(self, state, deck):
+    def dealer(self, pos, deck):
         score = 0
-        while score < 17:
-            score += settings.RANK[deck[state[settings.DECK_POS_KEY]]]
-            state[settings.DECK_POS_KEY] += 1
+        while score < settings.MAX_DEALER_SCORE:
+            score += settings.RANK[deck[pos][1]]
+            pos += 1
         return score
 
     def get_result(self, state, deck):
-        state[settings.DEALER_KEY] = self.dealer(state, deck)
+        state[settings.DEALER_KEY] = self.dealer(state[settings.DECK_POS_KEY], deck)
         for key in state:
             if key != settings.DEALER_KEY and key != settings.DECK_POS_KEY:
-                if self.count_score(state[key][0]) > state[settings.DEALER_KEY]:
+                if self.count_score(state[key][0]) > state[settings.DEALER_KEY] and self.count_score(state[key][0]) <= settings.MAX_SCORE:
                     state[key] = settings.WIN
-                elif self.count_score(state[key][0]) == state[settings.DEALER_KEY]:
+                elif self.count_score(state[key][0]) == state[settings.DEALER_KEY] and self.count_score(state[key][0]) <= settings.MAX_SCORE:
                     state[key] = settings.DRAW
                 else:
                     state[key] = settings.LOSS
@@ -43,7 +43,7 @@ class Game(QtWidgets.QWidget):
         hand = hand.split('~')
         score = 0
         for card in hand:
-            score += settings.RANK[hand[1]]
+            score += settings.RANK[card[1]]
         return score
 
     def get_score(self, state, login):
@@ -59,10 +59,11 @@ class Game(QtWidgets.QWidget):
     def switch_turn(self, state):
         for key in state:
             if key != settings.DEALER_KEY and key != settings.DECK_POS_KEY:
-                if state[key][2] == 0:
+                if state[key][2] == 0 or state[key][2] == 1:
                     state[key][2] = 1
-                    return state
-        return False
+                    return state, True
+
+        return state, False
 
     def deal_starting_cards(self, deck, state, places):
         i = 0
@@ -86,18 +87,18 @@ class Game(QtWidgets.QWidget):
             pos = state[settings.DECK_POS_KEY]
             state[move[settings.LOGIN_KEY]][0] += f"~{deck[pos]}"
             state[settings.DECK_POS_KEY] += 1
-            state[move[settings.LOGIN_KEY]][2] += 1
+            state[move[settings.LOGIN_KEY]][2] = 1
             if self.get_score(state, move[settings.LOGIN_KEY]) == True:
-                state = self.switch_turn(state)
-                if state == False:
+                state[move[settings.LOGIN_KEY]][2] = 2
+                state, marker = self.switch_turn(state)
+                if marker == False:
                     state = self.get_result(state, deck)
-
             return state
 
         if move[settings.MOVE_KEY] == settings.ENOUGH:
-            state[move[settings.LOGIN_KEY]][2] += 1
-            state = self.switch_turn(state, move[settings.LOGIN_KEY])
-            if state == False:
+            state[move[settings.LOGIN_KEY]][2] = 2
+            state, marker = self.switch_turn(state)
+            if marker == False:
                 state = self.get_result(state, deck)
             return state
 
