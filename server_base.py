@@ -65,16 +65,26 @@ class Window(QtWidgets.QWidget):
                         client_value.send(self.serialize(message))
 
     def refresh_room_info(self, client_id):
-        for key in self.rooms:
-            if self.rooms[key][settings.ADMIN_KEY] == client_id or client_id in self.rooms[key][settings.PLAYERS_KEY] or self.rooms[key] == self.rooms[client_id]:
-                players = []
-                for id in self.rooms[key][settings.PLAYERS_KEY]:
-                    players.append(self.client_info[id])
-                message = {settings.MODE_KEY: settings.MODE_PLAYERS, settings.ADMIN_KEY:
-                           self.client_info[self.rooms[key][settings.ADMIN_KEY]], settings.PLAYERS_KEY: players}
-                for client_value, address_value in self.clients.items():
-                    if address_value == self.rooms[key][settings.ADMIN_KEY] or address_value in self.rooms[key][settings.PLAYERS_KEY]:
-                        client_value.send(self.serialize(message))
+        if client_id not in self.rooms.keys():
+            for key in self.rooms:
+                if self.rooms[key][settings.ADMIN_KEY] == client_id or client_id in self.rooms[key][settings.PLAYERS_KEY]:
+                    players = []
+                    for id in self.rooms[key][settings.PLAYERS_KEY]:
+                        players.append(self.client_info[id])
+                    message = {settings.MODE_KEY: settings.MODE_PLAYERS, settings.ADMIN_KEY:
+                               self.client_info[self.rooms[key][settings.ADMIN_KEY]], settings.PLAYERS_KEY: players}
+                    for client_value, address_value in self.clients.items():
+                        if address_value == self.rooms[key][settings.ADMIN_KEY] or address_value in self.rooms[key][settings.PLAYERS_KEY]:
+                            client_value.send(self.serialize(message))
+        elif client_id in self.rooms.keys():
+            players = []
+            for id in self.rooms[client_id][settings.PLAYERS_KEY]:
+                players.append(self.client_info[id])
+            message = {settings.MODE_KEY: settings.MODE_PLAYERS, settings.ADMIN_KEY:
+                       self.client_info[self.rooms[client_id][settings.ADMIN_KEY]], settings.PLAYERS_KEY: players}
+            for client_value, address_value in self.clients.items():
+                if address_value == self.rooms[client_id][settings.ADMIN_KEY] or address_value in self.rooms[client_id][settings.PLAYERS_KEY]:
+                    client_value.send(self.serialize(message))
 
     def refresh_rooms(self):
         if len(self.rooms) != 0:
